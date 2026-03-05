@@ -4,6 +4,9 @@ import { useState, useRef } from "react";
 import { Upload, ImagePlus, X, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMutation } from "convex/react";
+import { api } from "convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,9 +15,13 @@ import { Label } from "@/components/ui/label";
 
 export default function UploadPage() {
   const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  const addMeme = useMutation(api.memes.addMeme);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -23,6 +30,7 @@ export default function UploadPage() {
         toast.error("Please select an image file");
         return;
       }
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
@@ -39,6 +47,7 @@ export default function UploadPage() {
         toast.error("Please select an image file");
         return;
       }
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
@@ -53,6 +62,7 @@ export default function UploadPage() {
 
   const clearPreview = () => {
     setPreview(null);
+    setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -60,7 +70,7 @@ export default function UploadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!preview) {
+    if (!selectedFile) {
       toast.error("Please select an image");
       return;
     }
@@ -70,14 +80,53 @@ export default function UploadPage() {
     }
 
     setIsUploading(true);
-    // Simulate upload delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsUploading(false);
-    toast.success("Meme uploaded successfully!");
-    setPreview(null);
-    setDescription("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+
+    try {
+      // Upload to our API
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Upload error:", data);
+        const errorMessage = data.error || "Failed to upload image";
+        throw new Error(errorMessage);
+      }
+      const imageUrl = data.secure_url;
+
+      // Save to Convex
+      await addMeme({
+        imageUrl,
+        description: description.trim(),
+      });
+
+      toast.success("Meme uploaded successfully!");
+      setPreview(null);
+      setSelectedFile(null);
+      setDescription("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      // Redirect to home page after 1 second
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
+    } catch (error) {
+      console.error("Upload error:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to upload meme. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setIsUploading(false);
     }
   };
 

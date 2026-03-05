@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Creepster } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { ConvexClientProvider } from "@/components/convex-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,15 +36,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${creepster.variable} antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <ConvexClientProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </ConvexClientProvider>
       </body>
     </html>
   );

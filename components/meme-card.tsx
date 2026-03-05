@@ -9,6 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface MemeCardProps {
   id: string;
@@ -17,13 +18,17 @@ interface MemeCardProps {
 }
 
 export function MemeCard({ id, imageUrl, description }: MemeCardProps) {
-  const handleShare = async () => {
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     const url = `${window.location.origin}/meme/${id}`;
     await navigator.clipboard.writeText(url);
     toast("Link Copied");
   };
 
-  const handleDownload = async () => {
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -42,44 +47,46 @@ export function MemeCard({ id, imageUrl, description }: MemeCardProps) {
   };
 
   return (
-    <Card className="group overflow-hidden bg-card/50 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1">
-      <CardContent className="p-0 relative">
-        <div className="overflow-hidden">
-          <img
-            src={imageUrl}
-            alt={description}
-            className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        </div>
-        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4 p-4 bg-linear-to-b from-card/80 to-card">
-        <CardDescription className="text-muted-foreground/90 line-clamp-2 text-sm leading-relaxed w-full">
-          {description}
-        </CardDescription>
-        <div className="flex items-center justify-end gap-2 w-full">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDownload}
-            className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-            aria-label="Download meme"
-          >
-            <Download className="size-4 mr-2" />
-            Download
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleShare}
-            className="border-primary/30 hover:border-primary hover:bg-primary/10 hover:text-primary transition-colors"
-            aria-label="Share meme"
-          >
-            <Share2 className="size-4 mr-2" />
-            Share
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
+    <Link href={`/meme/${id}`}>
+      <Card className="group overflow-hidden bg-card/50 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 cursor-pointer">
+        <CardContent className="p-0 relative">
+          <div className="overflow-hidden">
+            <img
+              src={imageUrl}
+              alt={description}
+              className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4 p-4 bg-linear-to-b from-card/80 to-card">
+          <CardDescription className="text-muted-foreground/90 line-clamp-2 text-sm leading-relaxed w-full">
+            {description}
+          </CardDescription>
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDownload}
+              className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              aria-label="Download meme"
+            >
+              <Download className="size-4 mr-2" />
+              Download
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              className="border-primary/30 hover:border-primary hover:bg-primary/10 hover:text-primary transition-colors"
+              aria-label="Share meme"
+            >
+              <Share2 className="size-4 mr-2" />
+              Share
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
+    </Link>
   );
 }
