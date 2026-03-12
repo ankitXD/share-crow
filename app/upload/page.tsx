@@ -5,6 +5,7 @@ import { Upload, ImagePlus, X, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -178,9 +179,11 @@ export default function UploadPage() {
                   </div>
                 ) : (
                   <div className="relative group">
-                    <img
+                    <Image
                       src={preview}
                       alt="Preview"
+                      width={800}
+                      height={320}
                       className="w-full h-80 object-contain rounded-xl bg-black/20"
                     />
                     <Button

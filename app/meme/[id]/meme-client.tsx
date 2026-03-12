@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -65,11 +66,14 @@ export function MemeClient({ id }: MemeClientProps) {
           </Link>
         </div>
         <div className="max-w-4xl mx-auto">
-          <div className="relative">
-            <img
+          <div className="relative w-full flex justify-center">
+            <Image
               src={meme.imageUrl}
               alt={meme.description}
+              width={800}
+              height={600}
               className="w-full h-auto max-h-screen object-contain rounded-lg shadow-2xl"
+              priority
             />
           </div>
           <div className="mt-6 flex flex-col gap-4">
