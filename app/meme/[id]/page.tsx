@@ -30,7 +30,6 @@ export async function generateMetadata({
     });
 
     if (!meme || !meme.imageUrl) {
-      console.warn(`Invalid meme data for ${id}`);
       throw new Error("Invalid meme data");
     }
 
@@ -61,7 +60,6 @@ export async function generateMetadata({
       },
     };
   } catch (error) {
-    console.error("Error generating metadata for meme", id, ":", error);
     // Fallback metadata if fetch fails
     return {
       title: `Share Crow - Meme`,

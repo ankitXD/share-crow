@@ -4,10 +4,9 @@ import { Id } from "@/convex/_generated/dataModel";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 
+// NEXT_PUBLIC_CONVEX_URL is required and should be set in environment variables
 if (!convexUrl) {
-  console.error(
-    "NEXT_PUBLIC_CONVEX_URL is not set. Please add it to your environment variables.",
-  );
+  // URL is not set - validation happens in GET handler
 }
 
 const convex = new ConvexHttpClient(convexUrl || "");
@@ -50,7 +49,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error fetching meme:", error);
     return new Response(JSON.stringify({ error: "Error fetching meme" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

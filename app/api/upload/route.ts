@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
           },
           (error, result) => {
             if (error) {
-              console.error("Cloudinary upload error:", error);
               reject(error);
             } else {
               resolve(result as UploadApiResponse);
@@ -39,7 +38,6 @@ export async function POST(request: NextRequest) {
       secure_url: (result as UploadApiResponse).secure_url,
     });
   } catch (error) {
-    console.error("Upload error:", error);
     return NextResponse.json(
       { error: "Failed to upload image" },
       { status: 500 },

@@ -95,7 +95,6 @@ export default function UploadPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Upload error:", data);
         const errorMessage = data.error || "Failed to upload image";
         throw new Error(errorMessage);
       }
@@ -120,7 +119,6 @@ export default function UploadPage() {
         router.push("/");
       }, 1000);
     } catch (error) {
-      console.error("Upload error:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
