@@ -12,24 +12,29 @@ export async function generateMetadata(
   const { id } = await params;
 
   try {
-    // Fetch meme data from your API
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+      : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const res = await fetch(`${baseUrl}/api/memes/${id}`, {
-      cache: "no-store",
+      next: { revalidate: 3600 }, // Revalidate every hour
     });
 
     if (!res.ok) {
+      console.error(`Failed to fetch meme ${id}:`, res.status);
       throw new Error("Failed to fetch meme");
     }
 
     const meme = await res.json();
 
+    if (!meme || !meme.imageUrl) {
+      throw new Error("Invalid meme data");
+    }
+
     return {
       title: `Share Crow - ${meme.description || "Meme"}`,
       description: meme.description || "Check out this meme on Share Crow!",
+      metadataBase: new URL(baseUrl),
       openGraph: {
         title: `Share Crow - ${meme.description || "Meme"}`,
         description: meme.description || "Check out this meme on Share Crow!",
@@ -53,6 +58,7 @@ export async function generateMetadata(
       },
     };
   } catch (error) {
+    console.error("Error generating metadata:", error);
     // Fallback metadata if fetch fails
     return {
       title: "Share Crow - Meme",

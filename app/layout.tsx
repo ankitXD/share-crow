@@ -21,9 +21,25 @@ const creepster = Creepster({
   weight: "400",
 });
 
+const baseUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
   title: "Share Crow",
   description: "Share and discover the best memes",
+  openGraph: {
+    title: "Share Crow",
+    description: "Share and discover the best memes",
+    url: baseUrl,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Share Crow",
+    description: "Share and discover the best memes",
+  },
 };
 
 export default function RootLayout({
