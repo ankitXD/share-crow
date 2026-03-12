@@ -1,4 +1,7 @@
 import { Metadata, ResolvingMetadata } from "next";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { MemeClient } from "./meme-client";
 
 interface PageProps {
@@ -11,23 +14,24 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
 
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
   try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-    const res = await fetch(`${baseUrl}/api/memes/${id}`, {
-      next: { revalidate: 3600 }, // Revalidate every hour
-    });
-
-    if (!res.ok) {
-      console.error(`Failed to fetch meme ${id}:`, res.status);
-      throw new Error("Failed to fetch meme");
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
     }
 
-    const meme = await res.json();
+    // Use ConvexHttpClient to query directly
+    const convex = new ConvexHttpClient(convexUrl);
+    const meme = await convex.query(api.memes.getMeme, {
+      id: id as Id<"memes">,
+    });
 
     if (!meme || !meme.imageUrl) {
+      console.warn(`Invalid meme data for ${id}`);
       throw new Error("Invalid meme data");
     }
 
@@ -58,11 +62,12 @@ export async function generateMetadata(
       },
     };
   } catch (error) {
-    console.error("Error generating metadata:", error);
+    console.error("Error generating metadata for meme", id, ":", error);
     // Fallback metadata if fetch fails
     return {
-      title: "Share Crow - Meme",
+      title: `Share Crow - Meme`,
       description: "Check out this meme on Share Crow!",
+      metadataBase: new URL(baseUrl),
     };
   }
 }
