@@ -54,7 +54,7 @@ export function MemeCard({ id, imageUrl, description }: MemeCardProps) {
             <img
               src={imageUrl}
               alt={description}
-              className="w-full h-72 object-cover transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-72 object-contain object-center transition-transform duration-500 group-hover:scale-105"
             />
           </div>
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

@@ -1,105 +1,68 @@
-"use client";
-
-import React from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { notFound } from "next/navigation";
-import { Share2, Download } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Metadata, ResolvingMetadata } from "next";
+import { MemeClient } from "./meme-client";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function MemePage({ params }: PageProps) {
-  const { id } = React.use(params);
-  const meme = useQuery(api.memes.getMeme, { id: id as Id<"memes"> });
+export async function generateMetadata(
+  { params }: PageProps,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const { id } = await params;
 
-  if (meme === undefined) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  try {
+    // Fetch meme data from your API
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
 
-  if (!meme) {
-    notFound();
-  }
+    const res = await fetch(`${baseUrl}/api/memes/${id}`, {
+      cache: "no-store",
+    });
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    await navigator.clipboard.writeText(url);
-    toast("Link Copied");
-  };
-
-  const handleDownload = async () => {
-    try {
-      const response = await fetch(meme.imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `meme-${id}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast("Download Started");
-    } catch {
-      toast.error("Failed to download");
+    if (!res.ok) {
+      throw new Error("Failed to fetch meme");
     }
-  };
 
-  return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center mb-12">
-          <Link href="/">
-            <h1 className="text-5xl md:text-7xl font-bold font-creepster">
-              Share Crow
-            </h1>
-          </Link>
-        </div>
-        <div className="max-w-4xl mx-auto">
-          <div className="relative">
-            <img
-              src={meme.imageUrl}
-              alt={meme.description}
-              className="w-full h-auto max-h-screen object-contain rounded-lg shadow-2xl"
-            />
-          </div>
-          <div className="mt-6 flex flex-col gap-4">
-            <p className="text-muted-foreground text-center text-lg">
-              {meme.description}
-            </p>
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleDownload}
-                className="gap-2"
-              >
-                <Download className="size-5" />
-                Download
-              </Button>
-              <Button
-                variant="default"
-                size="lg"
-                onClick={handleShare}
-                className="gap-2"
-              >
-                <Share2 className="size-5" />
-                Share
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
+    const meme = await res.json();
+
+    return {
+      title: `Share Crow - ${meme.description || "Meme"}`,
+      description: meme.description || "Check out this meme on Share Crow!",
+      openGraph: {
+        title: `Share Crow - ${meme.description || "Meme"}`,
+        description: meme.description || "Check out this meme on Share Crow!",
+        images: [
+          {
+            url: meme.imageUrl,
+            width: 1200,
+            height: 630,
+            alt: meme.description || "Meme",
+            type: "image/jpeg",
+          },
+        ],
+        type: "website",
+        url: `${baseUrl}/meme/${id}`,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: `Share Crow - ${meme.description || "Meme"}`,
+        description: meme.description || "Check out this meme on Share Crow!",
+        images: [meme.imageUrl],
+      },
+    };
+  } catch (error) {
+    // Fallback metadata if fetch fails
+    return {
+      title: "Share Crow - Meme",
+      description: "Check out this meme on Share Crow!",
+    };
+  }
+}
+
+export default async function MemePage({ params }: PageProps) {
+  const { id } = await params;
+
+  return <MemeClient id={id} />;
 }
