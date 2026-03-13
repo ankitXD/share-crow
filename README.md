@@ -4,13 +4,14 @@ A dark-themed meme sharing website built with modern web technologies.
 
 ## 📋 Project Status
 
-This project is in **active development** with a functional full-stack meme sharing flow — users can upload memes to Cloudinary, persist them in Convex, and browse/share/download them.
+This project is in **active development** with a functional full-stack meme sharing flow — users can upload memes to Cloudinary, persist them in Convex, and browse/share/download them. Features include pagination, NSFW content protection, clipboard paste support, and SEO optimization.
 
 ## ✅ Implemented Features
 
 ### 🏠 Home Page
 
 - **Meme Grid Layout**: Responsive grid displaying meme cards (1/2/3 columns based on screen size)
+- **Pagination**: Memes displayed 6 per page with next/previous buttons and direct page input
 - **Real-time Data**: Memes fetched from Convex database (sorted newest first)
 - **Loading State**: Spinner while memes are being fetched
 - **Empty State**: Call-to-action prompting users to upload the first meme
@@ -20,6 +21,7 @@ This project is in **active development** with a functional full-stack meme shar
 ### 🃏 Meme Card Component
 
 - **Image Display**: High-quality image rendering with fixed-height cover display
+- **NSFW Content Protection**: Optional blur overlay for NSFW memes with "Show" button to reveal
 - **Hover Effects**: Smooth scale animations and gradient overlays on hover
 - **Share Button**: Copies shareable meme link (`/meme/[id]`) to clipboard with toast notification
 - **Download Button**: Downloads meme image directly to user's device via blob fetch
@@ -31,6 +33,7 @@ This project is in **active development** with a functional full-stack meme shar
 ### 📄 Individual Meme Page (`/meme/[id]`)
 
 - **Dynamic Routing**: Next.js App Router dynamic route with Convex data fetching
+- **SEO Optimization**: Dynamic Open Graph meta tags for social sharing
 - **Full-size Image**: Responsive image display with auto height and max-height constraint
 - **Meme Description**: Centered text below the image
 - **Share & Download Buttons**: Same functionality as meme card actions
@@ -42,8 +45,10 @@ This project is in **active development** with a functional full-stack meme shar
 
 - **File Input**: Hidden file picker triggered by drag-and-drop zone
 - **Drag & Drop Zone**: Interactive area for dragging images with visual feedback
+- **Paste Support**: Users can paste images directly from clipboard
 - **Image Preview**: Real-time preview of selected image before upload with remove button
 - **Description Field**: Textarea for adding meme descriptions with helper text
+- **NSFW Toggle**: Switch to mark memes as Not Safe For Work
 - **File Validation**: Ensures only image files are accepted (client-side)
 - **Real Upload Flow**: Uploads image to Cloudinary via API route, saves metadata to Convex
 - **Loading States**: Disabled button and spinner during upload
@@ -59,10 +64,11 @@ This project is in **active development** with a functional full-stack meme shar
 
 ### 🗄️ Database (Convex)
 
-- **Schema**: `memes` table with `imageUrl`, `description`, and `uploadedAt` fields
+- **Schema**: `memes` table with `imageUrl`, `description`, `uploadedAt`, and `isNsfw` fields
 - **Index**: `by_uploadedAt` index for efficient sorted queries
-- **Queries**: `getMemes` (all memes, newest first) and `getMeme` (single meme by ID)
-- **Mutations**: `addMeme` (insert new meme with timestamp)
+- **Pagination**: Memes queried with pagination (6 per page)
+- **Queries**: `getMemesWithPagination` (paginated memes, newest first) and `getMeme` (single meme by ID)
+- **Mutations**: `addMeme` (insert new meme with timestamp and NSFW flag)
 - **Provider**: `ConvexClientProvider` wrapping the app with `NEXT_PUBLIC_CONVEX_URL`
 
 ### 🎨 Design System
@@ -106,7 +112,6 @@ This project is in **active development** with a functional full-stack meme shar
 - User profiles
 - Comments or reactions
 - Admin panel
-- SEO optimization (Open Graph meta tags, etc.)
 - Analytics
 
 ## 🚀 Getting Started
