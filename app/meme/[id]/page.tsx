@@ -44,11 +44,11 @@ export async function generateMetadata({
         description: meme.description || "Check out this meme on Share Crow!",
         images: [
           {
-            url: meme.imageUrl,
+            url: `${baseUrl}/api/og/${id}`,
             width: 1200,
             height: 630,
             alt: meme.description || "Meme",
-            type: "image/jpeg",
+            type: "image/png",
           },
         ],
         type: "website",
@@ -58,7 +58,7 @@ export async function generateMetadata({
         card: "summary_large_image",
         title: `Share Crow - ${meme.description || "Meme"}`,
         description: meme.description || "Check out this meme on Share Crow!",
-        images: [meme.imageUrl],
+        images: [`${baseUrl}/api/og/${id}`],
       },
     };
   } catch (error) {
