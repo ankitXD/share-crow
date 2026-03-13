@@ -13,11 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 export default function UploadPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
+  const [isNsfw, setIsNsfw] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -131,12 +133,14 @@ export default function UploadPage() {
       await addMeme({
         imageUrl,
         description: description.trim(),
+        isNsfw,
       });
 
       toast.success("Meme uploaded successfully!");
       setPreview(null);
       setSelectedFile(null);
       setDescription("");
+      setIsNsfw(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -251,6 +255,27 @@ export default function UploadPage() {
                 <p className="text-xs text-muted-foreground">
                   Keep it short and funny for maximum impact
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="nsfw" className="text-lg font-medium">
+                    NSFW Content
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Mark this meme as Not Safe For Work
+                  </p>
+                </div>
+                <Switch
+                  id="nsfw"
+                  checked={isNsfw}
+                  onCheckedChange={setIsNsfw}
+                  className="data-[state=checked]:bg-primary"
+                />
               </div>
             </CardContent>
           </Card>

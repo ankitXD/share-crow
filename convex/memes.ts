@@ -58,13 +58,31 @@ export const addMeme = mutation({
   args: {
     imageUrl: v.string(),
     description: v.string(),
+    isNsfw: v.boolean(),
   },
   handler: async (ctx, args) => {
     const memeId = await ctx.db.insert("memes", {
       imageUrl: args.imageUrl,
       description: args.description,
+      isNsfw: args.isNsfw,
       uploadedAt: Date.now(),
     });
     return memeId;
+  },
+});
+
+// Temporary mutation to add isNsfw to existing memes
+export const updateExistingMemes = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const memes = await ctx.db.query("memes").collect();
+    const updates = [];
+    for (const meme of memes) {
+      if (meme.isNsfw === undefined) {
+        updates.push(ctx.db.patch(meme._id, { isNsfw: false }));
+      }
+    }
+    await Promise.all(updates);
+    return `Updated ${updates.length} memes`;
   },
 });

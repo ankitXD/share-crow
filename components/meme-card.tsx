@@ -1,6 +1,7 @@
 "use client";
 
-import { Share2, Download } from "lucide-react";
+import { useState } from "react";
+import { Share2, Download, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
   Card,
@@ -15,9 +16,11 @@ interface MemeCardProps {
   id: string;
   imageUrl: string;
   description: string;
+  isNsfw?: boolean;
 }
 
-export function MemeCard({ id, imageUrl, description }: MemeCardProps) {
+export function MemeCard({ id, imageUrl, description, isNsfw }: MemeCardProps) {
+  const [showNsfw, setShowNsfw] = useState(false);
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -50,12 +53,32 @@ export function MemeCard({ id, imageUrl, description }: MemeCardProps) {
     <Link href={`/meme/${id}`}>
       <Card className="group overflow-hidden bg-card/50 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 cursor-pointer">
         <CardContent className="p-0 relative">
-          <div className="overflow-hidden">
+          <div className="overflow-hidden relative">
             <img
               src={imageUrl}
               alt={description}
               className="w-full h-72 object-contain object-center transition-transform duration-500 group-hover:scale-105"
             />
+            {isNsfw && !showNsfw && (
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="text-sm font-semibold text-white">
+                    NSFW Content
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowNsfw(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-white text-sm transition-colors"
+                  >
+                    <Eye className="size-4" />
+                    Show
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </CardContent>

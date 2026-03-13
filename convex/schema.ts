@@ -6,5 +6,6 @@ export default defineSchema({
     imageUrl: v.string(),
     description: v.string(),
     uploadedAt: v.number(),
+    isNsfw: v.optional(v.boolean()),
   }).index("by_uploadedAt", ["uploadedAt"]),
 });

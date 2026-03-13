@@ -64,6 +64,7 @@ export default function Home() {
                   id={meme._id}
                   imageUrl={meme.imageUrl}
                   description={meme.description}
+                  isNsfw={meme.isNsfw}
                 />
               ))}
             </div>
