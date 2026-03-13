@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, ImagePlus, X, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -23,6 +23,33 @@ export default function UploadPage() {
   const router = useRouter();
 
   const addMeme = useMutation(api.memes.addMeme);
+
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          e.preventDefault();
+          const file = items[i].getAsFile();
+          if (file) {
+            setSelectedFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              setPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+            toast.success("Image pasted successfully!");
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
