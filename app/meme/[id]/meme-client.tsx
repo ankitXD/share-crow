@@ -72,7 +72,7 @@ export function MemeClient({ id }: MemeClientProps) {
               alt={meme.description}
               width={800}
               height={600}
-              className="w-full h-auto max-h-screen object-contain rounded-lg shadow-2xl"
+              className="w-full h-auto max-h-screen object-contain shadow-2xl"
               priority
             />
           </div>
