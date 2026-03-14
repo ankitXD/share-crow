@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
@@ -62,7 +63,7 @@ export function MemeCard({
             <img
               src={imageUrl}
               alt={description}
-              className="w-full h-72 object-contain object-center transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-72 object-contain object-center"
             />
             {isNsfw && !showNsfw && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center">
