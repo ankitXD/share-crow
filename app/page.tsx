@@ -6,10 +6,13 @@ import { api } from "convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export default function Home() {
-  const [page, setPage] = useState(1);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const page = parseInt(searchParams.get("page") || "1", 10);
   const result = useQuery(api.memes.getMemesWithPagination, { page });
 
   const memes = result?.memes;
@@ -18,25 +21,33 @@ export default function Home() {
 
   const goToNextPage = () => {
     if (currentPage < totalPages) {
-      setPage(page + 1);
+      const newPage = page + 1;
+      router.push(`?page=${newPage}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const goToPreviousPage = () => {
     if (currentPage > 1) {
-      setPage(page - 1);
+      const newPage = page - 1;
+      router.push(`?page=${newPage}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    router.push(`?page=${newPage}`);
   };
 
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center mb-12">
-          <h1 className="text-5xl md:text-7xl font-bold font-creepster">
-            Share Crow
-          </h1>
+          <Link href="/">
+            <h1 className="text-5xl md:text-7xl font-bold font-creepster">
+              Share Crow
+            </h1>
+          </Link>
         </div>
 
         {result === undefined ? (
@@ -95,7 +106,7 @@ export default function Home() {
                         1,
                         Math.min(totalPages, parseInt(e.target.value) || 1),
                       );
-                      setPage(newPage);
+                      handlePageChange(newPage);
                     }}
                     className="w-12 px-2 py-1 bg-muted text-foreground border border-border rounded text-center text-sm"
                   />
