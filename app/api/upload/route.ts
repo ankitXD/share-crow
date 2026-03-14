@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
       secure_url: (result as UploadApiResponse).secure_url,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to upload image" },
-      { status: 500 },
-    );
+    console.error("Upload error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to upload image";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
