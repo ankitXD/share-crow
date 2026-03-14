@@ -43,7 +43,7 @@ export function MemeClient({ shortId }: MemeClientProps) {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `meme-${shortId}.jpg`;
+      link.download = `sharecrow-${shortId}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

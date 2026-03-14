@@ -7,7 +7,7 @@ export default defineSchema({
     description: v.string(),
     uploadedAt: v.number(),
     isNsfw: v.optional(v.boolean()),
-    shortId: v.optional(v.string()),
+    shortId: v.string(),
   })
     .index("by_uploadedAt", ["uploadedAt"])
     .index("by_shortId", ["shortId"]),

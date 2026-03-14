@@ -58,17 +58,15 @@ export default function Home() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {memes
-                ?.filter((meme) => meme.shortId)
-                .map((meme) => (
-                  <MemeCard
-                    key={meme._id}
-                    shortId={meme.shortId!}
-                    imageUrl={meme.imageUrl}
-                    description={meme.description}
-                    isNsfw={meme.isNsfw}
-                  />
-                ))}
+              {memes?.map((meme) => (
+                <MemeCard
+                  key={meme._id}
+                  shortId={meme.shortId}
+                  imageUrl={meme.imageUrl}
+                  description={meme.description}
+                  isNsfw={meme.isNsfw}
+                />
+              ))}
             </div>
 
             {/* Pagination Controls */}
