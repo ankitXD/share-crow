@@ -1,16 +1,15 @@
 import { ImageResponse } from "@vercel/og";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 
 export const runtime = "edge";
 
 interface RouteParams {
-  params: Promise<{ id: string }>;
+  params: Promise<{ shortId: string }>;
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
-  const { id } = await params;
+  const { shortId } = await params;
 
   try {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -19,8 +18,8 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const convex = new ConvexHttpClient(convexUrl);
-    const meme = await convex.query(api.memes.getMeme, {
-      id: id as Id<"memes">,
+    const meme = await convex.query(api.memes.getMemeByShortId, {
+      shortId: shortId,
     });
 
     if (!meme || !meme.imageUrl) {

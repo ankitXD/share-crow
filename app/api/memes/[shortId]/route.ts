@@ -1,6 +1,5 @@
 import { api } from "@/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
-import { Id } from "@/convex/_generated/dataModel";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 
@@ -13,7 +12,7 @@ const convex = new ConvexHttpClient(convexUrl || "");
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ shortId: string }> },
 ) {
   try {
     if (!convexUrl) {
@@ -23,17 +22,17 @@ export async function GET(
       );
     }
 
-    const { id } = await params;
+    const { shortId } = await params;
 
-    if (!id) {
-      return new Response(JSON.stringify({ error: "ID is required" }), {
+    if (!shortId) {
+      return new Response(JSON.stringify({ error: "shortId is required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const meme = await convex.query(api.memes.getMeme, {
-      id: id as Id<"memes">,
+    const meme = await convex.query(api.memes.getMemeByShortId, {
+      shortId: shortId,
     });
 
     if (!meme) {
@@ -49,7 +48,8 @@ export async function GET(
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Error fetching meme" }), {
+    console.error("Error fetching meme:", error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

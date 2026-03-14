@@ -4,7 +4,6 @@ import React from "react";
 import Image from "next/image";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 import { notFound } from "next/navigation";
 import { Share2, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -13,11 +12,11 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface MemeClientProps {
-  id: string;
+  shortId: string;
 }
 
-export function MemeClient({ id }: MemeClientProps) {
-  const meme = useQuery(api.memes.getMeme, { id: id as Id<"memes"> });
+export function MemeClient({ shortId }: MemeClientProps) {
+  const meme = useQuery(api.memes.getMemeByShortId, { shortId });
 
   if (meme === undefined) {
     return (
@@ -44,7 +43,7 @@ export function MemeClient({ id }: MemeClientProps) {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `meme-${id}.jpg`;
+      link.download = `meme-${shortId}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

@@ -13,18 +13,23 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 interface MemeCardProps {
-  id: string;
+  shortId: string;
   imageUrl: string;
   description: string;
   isNsfw?: boolean;
 }
 
-export function MemeCard({ id, imageUrl, description, isNsfw }: MemeCardProps) {
+export function MemeCard({
+  shortId,
+  imageUrl,
+  description,
+  isNsfw,
+}: MemeCardProps) {
   const [showNsfw, setShowNsfw] = useState(false);
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const url = `${window.location.origin}/meme/${id}`;
+    const url = `${window.location.origin}/meme/${shortId}`;
     await navigator.clipboard.writeText(url);
     toast("Link Copied");
   };
@@ -38,7 +43,7 @@ export function MemeCard({ id, imageUrl, description, isNsfw }: MemeCardProps) {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `meme-${id}.jpg`;
+      link.download = `meme-${shortId}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -50,7 +55,7 @@ export function MemeCard({ id, imageUrl, description, isNsfw }: MemeCardProps) {
   };
 
   return (
-    <Link href={`/meme/${id}`}>
+    <Link href={`/meme/${shortId}`}>
       <Card className="group overflow-hidden bg-card/50 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 cursor-pointer">
         <CardContent className="p-0 relative">
           <div className="overflow-hidden relative">

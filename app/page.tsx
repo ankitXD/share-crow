@@ -61,7 +61,7 @@ export default function Home() {
               {memes?.map((meme) => (
                 <MemeCard
                   key={meme._id}
-                  id={meme._id}
+                  shortId={meme.shortId}
                   imageUrl={meme.imageUrl}
                   description={meme.description}
                   isNsfw={meme.isNsfw}

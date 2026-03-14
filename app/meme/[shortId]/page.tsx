@@ -1,17 +1,16 @@
 import { Metadata } from "next";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 import { MemeClient } from "./meme-client";
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ shortId: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { id } = await params;
+  const { shortId } = await params;
 
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -27,8 +26,8 @@ export async function generateMetadata({
 
     // Use ConvexHttpClient to query directly
     const convex = new ConvexHttpClient(convexUrl);
-    const meme = await convex.query(api.memes.getMeme, {
-      id: id as Id<"memes">,
+    const meme = await convex.query(api.memes.getMemeByShortId, {
+      shortId: shortId,
     });
 
     if (!meme || !meme.imageUrl) {
@@ -44,7 +43,7 @@ export async function generateMetadata({
         description: meme.description || "Check out this meme on Share Crow!",
         images: [
           {
-            url: `${baseUrl}/api/og/${id}`,
+            url: `${baseUrl}/api/og/${shortId}`,
             width: 1200,
             height: 630,
             alt: meme.description || "Meme",
@@ -52,13 +51,13 @@ export async function generateMetadata({
           },
         ],
         type: "website",
-        url: `${baseUrl}/meme/${id}`,
+        url: `${baseUrl}/meme/${shortId}`,
       },
       twitter: {
         card: "summary_large_image",
         title: `Share Crow - ${meme.description || "Meme"}`,
         description: meme.description || "Check out this meme on Share Crow!",
-        images: [`${baseUrl}/api/og/${id}`],
+        images: [`${baseUrl}/api/og/${shortId}`],
       },
     };
   } catch (error) {
@@ -72,7 +71,7 @@ export async function generateMetadata({
 }
 
 export default async function MemePage({ params }: PageProps) {
-  const { id } = await params;
+  const { shortId } = await params;
 
-  return <MemeClient id={id} />;
+  return <MemeClient shortId={shortId} />;
 }

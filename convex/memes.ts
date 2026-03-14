@@ -1,7 +1,14 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { customAlphabet } from "nanoid";
 
 const PAGE_SIZE = 6;
+
+// Generate a 7-character ID using Base62 character set (0-9, a-z, A-Z)
+const nanoid = customAlphabet(
+  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  7,
+);
 
 // Query to get all memes, sorted by upload date (newest first)
 export const getMemes = query({
@@ -53,6 +60,18 @@ export const getMeme = query({
   },
 });
 
+// Query to get a single meme by shortId
+export const getMemeByShortId = query({
+  args: { shortId: v.string() },
+  handler: async (ctx, args) => {
+    const meme = await ctx.db
+      .query("memes")
+      .withIndex("by_shortId", (q) => q.eq("shortId", args.shortId))
+      .first();
+    return meme;
+  },
+});
+
 // Mutation to add a new meme
 export const addMeme = mutation({
   args: {
@@ -61,13 +80,101 @@ export const addMeme = mutation({
     isNsfw: v.boolean(),
   },
   handler: async (ctx, args) => {
+    // Generate a unique shortId with collision check
+    let shortId = nanoid();
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+      const existing = await ctx.db
+        .query("memes")
+        .withIndex("by_shortId", (q) => q.eq("shortId", shortId))
+        .first();
+
+      if (!existing) {
+        // shortId is unique
+        break;
+      }
+
+      // Collision detected, generate a new one
+      shortId = nanoid();
+      attempts++;
+    }
+
+    if (attempts === maxAttempts) {
+      throw new Error(
+        "Failed to generate unique shortId after multiple attempts",
+      );
+    }
+
     const memeId = await ctx.db.insert("memes", {
       imageUrl: args.imageUrl,
       description: args.description,
       isNsfw: args.isNsfw,
       uploadedAt: Date.now(),
+      shortId: shortId,
     });
     return memeId;
+  },
+});
+
+// Backfill existing memes with shortId and isNsfw
+export const backfillMemes = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const memes = await ctx.db.query("memes").collect();
+    const updates = [];
+    let addedShortIds = 0;
+    let addedNsfw = 0;
+
+    for (const meme of memes) {
+      const patch: { isNsfw?: boolean; shortId?: string } = {};
+
+      // Add isNsfw if missing
+      if (meme.isNsfw === undefined) {
+        patch.isNsfw = false;
+        addedNsfw++;
+      }
+
+      // Add shortId if missing
+      if (!meme.shortId) {
+        let shortId = nanoid();
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        // Ensure uniqueness
+        while (attempts < maxAttempts) {
+          const existing = await ctx.db
+            .query("memes")
+            .withIndex("by_shortId", (q) => q.eq("shortId", shortId))
+            .first();
+
+          if (!existing) {
+            break;
+          }
+
+          shortId = nanoid();
+          attempts++;
+        }
+
+        if (attempts === maxAttempts) {
+          throw new Error(
+            "Failed to generate unique shortId after multiple attempts",
+          );
+        }
+
+        patch.shortId = shortId;
+        addedShortIds++;
+      }
+
+      // Only patch if there are changes
+      if (Object.keys(patch).length > 0) {
+        updates.push(ctx.db.patch(meme._id, patch));
+      }
+    }
+
+    await Promise.all(updates);
+    return `Backfilled: added shortIds to ${addedShortIds} memes and isNsfw to ${addedNsfw} memes`;
   },
 });
 
