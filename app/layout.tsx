@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Creepster } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ConvexClientProvider } from "@/components/convex-provider";
+import { PWARegister } from "@/components/pwa-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,10 +28,23 @@ const baseUrl =
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000");
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: "Share Crow",
   description: "Share and discover the best memes",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Share Crow",
+  },
   openGraph: {
     title: "Share Crow",
     description: "Share and discover the best memes",
@@ -51,6 +65,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${creepster.variable} antialiased`}
       >
@@ -63,6 +80,7 @@ export default function RootLayout({
           >
             {children}
             <Toaster />
+            <PWARegister />
           </ThemeProvider>
         </ConvexClientProvider>
       </body>
