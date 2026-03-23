@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, ImagePlus, X, ArrowLeft } from "lucide-react";
+import { Upload, ImagePlus, X, ArrowLeft, Loader2, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
+import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 export default function UploadPage() {
+  const { data: session, isPending } = useSession();
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
@@ -25,6 +27,12 @@ export default function UploadPage() {
   const router = useRouter();
 
   const addMeme = useMutation(api.memes.addMeme);
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/login");
+    }
+  }, [isPending, session, router]);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -52,6 +60,18 @@ export default function UploadPage() {
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
   }, []);
+
+  if (isPending) {
+    return (
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-primary" />
+      </main>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -172,6 +192,20 @@ export default function UploadPage() {
           <h1 className="text-4xl md:text-5xl font-bold font-creepster">
             Upload Meme
           </h1>
+          <div className="ml-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await signOut();
+                router.push("/login");
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="size-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
