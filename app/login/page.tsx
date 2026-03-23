@@ -67,7 +67,7 @@ export default function LoginPage() {
           <p className="text-muted-foreground mt-2">
             {isSignUp
               ? "Create an account to upload memes"
-              : "Sign in to upload memes"}
+              : "Authorized personnel only. If your humour isn't good, you don't belong here."}
           </p>
         </div>
 
