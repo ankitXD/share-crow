@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { notFound } from "next/navigation";
-import { Share2, Download } from "lucide-react";
+import { Share2, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -17,6 +17,7 @@ interface MemeClientProps {
 
 export function MemeClient({ shortId }: MemeClientProps) {
   const meme = useQuery(api.memes.getMemeByShortId, { shortId });
+  const adjacent = useQuery(api.memes.getAdjacentMemes, { shortId });
 
   if (meme === undefined) {
     return (
@@ -97,6 +98,46 @@ export function MemeClient({ shortId }: MemeClientProps) {
               >
                 <Share2 className="size-5" />
                 Share
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                disabled={!adjacent?.prevShortId}
+                asChild={!!adjacent?.prevShortId}
+              >
+                {adjacent?.prevShortId ? (
+                  <Link href={`/meme/${adjacent.prevShortId}`}>
+                    <ChevronLeft className="size-5" />
+                    Previous Meme
+                  </Link>
+                ) : (
+                  <>
+                    <ChevronLeft className="size-5" />
+                    Previous Meme
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                disabled={!adjacent?.nextShortId}
+                asChild={!!adjacent?.nextShortId}
+              >
+                {adjacent?.nextShortId ? (
+                  <Link href={`/meme/${adjacent.nextShortId}`}>
+                    Next Meme
+                    <ChevronRight className="size-5" />
+                  </Link>
+                ) : (
+                  <>
+                    Next Meme
+                    <ChevronRight className="size-5" />
+                  </>
+                )}
               </Button>
             </div>
           </div>

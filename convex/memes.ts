@@ -72,6 +72,31 @@ export const getMemeByShortId = query({
   },
 });
 
+// Query to get adjacent memes (prev/next) for navigation
+export const getAdjacentMemes = query({
+  args: { shortId: v.string() },
+  handler: async (ctx, args) => {
+    const allMemes = await ctx.db
+      .query("memes")
+      .withIndex("by_uploadedAt")
+      .order("desc")
+      .collect();
+
+    const currentIndex = allMemes.findIndex((m) => m.shortId === args.shortId);
+
+    if (currentIndex === -1) return { prevShortId: null, nextShortId: null };
+
+    const prevShortId =
+      currentIndex > 0 ? allMemes[currentIndex - 1].shortId : null;
+    const nextShortId =
+      currentIndex < allMemes.length - 1
+        ? allMemes[currentIndex + 1].shortId
+        : null;
+
+    return { prevShortId, nextShortId };
+  },
+});
+
 // Mutation to add a new meme
 export const addMeme = mutation({
   args: {
