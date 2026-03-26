@@ -30,7 +30,7 @@ export default function UploadPage() {
 
   useEffect(() => {
     if (!isPending && !session) {
-      router.push("/login");
+      router.replace("/login");
     }
   }, [isPending, session, router]);
 
