@@ -1,23 +1,51 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { notFound } from "next/navigation";
-import { Share2, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Share2, Download, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { ReactionBar } from "@/components/reaction-bar";
+import { CommentSection } from "@/components/comment-section";
+import { getFingerprint } from "@/lib/fingerprint";
 import Link from "next/link";
 
 interface MemeClientProps {
   shortId: string;
 }
 
+function formatCount(n: number): string {
+  if (n >= 1000)
+    return Intl.NumberFormat("en", { notation: "compact" }).format(n);
+  return String(n);
+}
+
 export function MemeClient({ shortId }: MemeClientProps) {
   const meme = useQuery(api.memes.getMemeByShortId, { shortId });
   const adjacent = useQuery(api.memes.getAdjacentMemes, { shortId });
+  const [fingerprint, setFingerprint] = useState("");
+  const recordView = useMutation(api.views.recordView);
+
+  useEffect(() => {
+    setFingerprint(getFingerprint());
+  }, []);
+
+  // Record view on mount
+  useEffect(() => {
+    if (meme && fingerprint) {
+      recordView({ memeId: meme._id, fingerprint });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meme?._id, fingerprint]);
+
+  const reactions = useQuery(
+    api.reactions.getReactionsForMeme,
+    meme ? { memeId: meme._id, fingerprint: fingerprint || undefined } : "skip",
+  );
 
   if (meme === undefined) {
     return (
@@ -80,6 +108,18 @@ export function MemeClient({ shortId }: MemeClientProps) {
             <p className="text-muted-foreground text-center text-lg">
               {meme.description}
             </p>
+            <div className="flex items-center justify-center text-sm text-muted-foreground gap-1">
+              <Eye className="size-4" />
+              {formatCount(meme.viewCount ?? 0)} views
+            </div>
+            <div className="flex justify-center">
+              <ReactionBar
+                memeId={meme._id}
+                counts={reactions?.counts ?? []}
+                userReaction={reactions?.userReaction ?? null}
+                size="lg"
+              />
+            </div>
             <div className="flex items-center justify-center gap-4">
               <Button
                 variant="outline"
@@ -139,6 +179,9 @@ export function MemeClient({ shortId }: MemeClientProps) {
                   </>
                 )}
               </Button>
+            </div>
+            <div className="mt-8">
+              <CommentSection memeId={meme._id} />
             </div>
           </div>
         </div>

@@ -24,7 +24,7 @@ export const getMemes = query({
 
 // Query to get paginated memes
 export const getMemesWithPagination = query({
-  args: { page: v.number() },
+  args: { page: v.number(), fingerprint: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const page = Math.max(1, args.page);
     const skip = (page - 1) * PAGE_SIZE;
@@ -42,8 +42,44 @@ export const getMemesWithPagination = query({
     // Get paginated memes
     const memes = allMemes.slice(skip, skip + PAGE_SIZE);
 
+    // Join reaction counts, comment counts for each meme
+    const memesWithMeta = await Promise.all(
+      memes.map(async (meme) => {
+        const reactions = await ctx.db
+          .query("reactions")
+          .withIndex("by_memeId", (q) => q.eq("memeId", meme._id))
+          .collect();
+
+        const countsMap: Record<string, number> = {};
+        let userReaction: string | null = null;
+        for (const r of reactions) {
+          countsMap[r.emoji] = (countsMap[r.emoji] ?? 0) + 1;
+          if (args.fingerprint && r.fingerprint === args.fingerprint) {
+            userReaction = r.emoji;
+          }
+        }
+        const reactionCounts = Object.entries(countsMap).map(
+          ([emoji, count]) => ({ emoji, count }),
+        );
+
+        const comments = await ctx.db
+          .query("comments")
+          .withIndex("by_memeId", (q) => q.eq("memeId", meme._id))
+          .collect();
+        const commentCount = comments.filter((c) => !c.isDeleted).length;
+
+        return {
+          ...meme,
+          reactionCounts,
+          userReaction,
+          commentCount,
+          viewCount: meme.viewCount ?? 0,
+        };
+      }),
+    );
+
     return {
-      memes,
+      memes: memesWithMeta,
       currentPage: page,
       totalPages,
       totalCount,

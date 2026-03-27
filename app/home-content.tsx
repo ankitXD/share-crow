@@ -7,13 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Upload, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { getFingerprint } from "@/lib/fingerprint";
+import { useState, useEffect } from "react";
 
 export function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [fingerprint, setFingerprint] = useState<string>("");
+
+  useEffect(() => {
+    setFingerprint(getFingerprint());
+  }, []);
 
   const page = parseInt(searchParams.get("page") || "1", 10);
-  const result = useQuery(api.memes.getMemesWithPagination, { page });
+  const result = useQuery(
+    api.memes.getMemesWithPagination,
+    fingerprint ? { page, fingerprint } : { page },
+  );
 
   const memes = result?.memes;
   const totalPages = result?.totalPages || 0;
@@ -63,10 +73,15 @@ export function HomeContent() {
             {memes?.map((meme) => (
               <MemeCard
                 key={meme._id}
+                memeId={meme._id}
                 shortId={meme.shortId}
                 imageUrl={meme.imageUrl}
                 description={meme.description}
                 isNsfw={meme.isNsfw}
+                viewCount={meme.viewCount}
+                commentCount={meme.commentCount}
+                reactionCounts={meme.reactionCounts}
+                userReaction={meme.userReaction}
               />
             ))}
           </div>

@@ -8,6 +8,7 @@ export default defineSchema({
     uploadedAt: v.number(),
     isNsfw: v.optional(v.boolean()),
     shortId: v.string(),
+    viewCount: v.optional(v.number()),
   })
     .index("by_uploadedAt", ["uploadedAt"])
     .index("by_shortId", ["shortId"]),
@@ -25,4 +26,31 @@ export default defineSchema({
     expiresAt: v.number(),
     createdAt: v.number(),
   }).index("by_token", ["token"]),
+
+  reactions: defineTable({
+    memeId: v.id("memes"),
+    fingerprint: v.string(),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_memeId", ["memeId"])
+    .index("by_memeId_fingerprint", ["memeId", "fingerprint"]),
+
+  memeViews: defineTable({
+    memeId: v.id("memes"),
+    fingerprint: v.string(),
+    viewedAt: v.number(),
+  }).index("by_memeId_fingerprint", ["memeId", "fingerprint"]),
+
+  comments: defineTable({
+    memeId: v.id("memes"),
+    fingerprint: v.string(),
+    name: v.string(),
+    text: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    isDeleted: v.optional(v.boolean()),
+  })
+    .index("by_memeId", ["memeId"])
+    .index("by_memeId_createdAt", ["memeId", "createdAt"]),
 });
