@@ -137,6 +137,7 @@ export const getAdjacentMemes = query({
 export const addMeme = mutation({
   args: {
     imageUrl: v.string(),
+    imageUrls: v.optional(v.array(v.string())),
     description: v.string(),
     isNsfw: v.boolean(),
   },
@@ -170,6 +171,7 @@ export const addMeme = mutation({
 
     const memeId = await ctx.db.insert("memes", {
       imageUrl: args.imageUrl,
+      imageUrls: args.imageUrls,
       description: args.description,
       isNsfw: args.isNsfw,
       uploadedAt: Date.now(),

@@ -76,6 +76,7 @@ export function HomeContent() {
                 memeId={meme._id}
                 shortId={meme.shortId}
                 imageUrl={meme.imageUrl}
+                imageUrls={meme.imageUrls}
                 description={meme.description}
                 isNsfw={meme.isNsfw}
                 viewCount={meme.viewCount}

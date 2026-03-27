@@ -12,37 +12,60 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get("file") as File;
 
-    if (!file) {
+    // Support multiple files via "files" field, fall back to single "file"
+    const files = formData.getAll("files") as File[];
+    const singleFile = formData.get("file") as File | null;
+
+    const filesToUpload =
+      files.length > 0 ? files : singleFile ? [singleFile] : [];
+
+    if (filesToUpload.length === 0) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    if (filesToUpload.length > 10) {
+      return NextResponse.json(
+        { error: "Maximum 10 images allowed" },
+        { status: 400 },
+      );
+    }
 
-    // Upload to Cloudinary
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder: "share-crow-memes",
-            resource_type: "image",
-          },
-          (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result as UploadApiResponse);
-            }
-          },
-        )
-        .end(buffer);
-    });
+    const uploadFile = async (file: File): Promise<string> => {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
 
+      const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "share-crow-memes",
+              resource_type: "image",
+            },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result as UploadApiResponse);
+              }
+            },
+          )
+          .end(buffer);
+      });
+
+      return result.secure_url;
+    };
+
+    const urls: string[] = [];
+    for (const file of filesToUpload) {
+      const url = await uploadFile(file);
+      urls.push(url);
+    }
+
+    // Return both formats for backward compat
     return NextResponse.json({
-      secure_url: (result as UploadApiResponse).secure_url,
+      secure_url: urls[0],
+      secure_urls: urls,
     });
   } catch (error) {
     console.error("Upload error:", error);

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ReactionBar } from "@/components/reaction-bar";
+import { ImageCarousel, getMemeImages } from "@/components/image-carousel";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 
@@ -19,6 +20,7 @@ interface MemeCardProps {
   memeId: Id<"memes">;
   shortId: string;
   imageUrl: string;
+  imageUrls?: string[];
   description: string;
   isNsfw?: boolean;
   viewCount: number;
@@ -37,6 +39,7 @@ export function MemeCard({
   memeId,
   shortId,
   imageUrl,
+  imageUrls,
   description,
   isNsfw,
   viewCount,
@@ -45,6 +48,8 @@ export function MemeCard({
   userReaction,
 }: MemeCardProps) {
   const [showNsfw, setShowNsfw] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const images = getMemeImages({ imageUrl, imageUrls });
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -57,7 +62,7 @@ export function MemeCard({
     e.preventDefault();
     e.stopPropagation();
     try {
-      const response = await fetch(imageUrl);
+      const response = await fetch(images[currentIndex]);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -78,10 +83,11 @@ export function MemeCard({
       <Card className="group overflow-hidden bg-card/50 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 cursor-pointer">
         <CardContent className="p-0 relative">
           <div className="overflow-hidden relative">
-            <img
-              src={imageUrl}
+            <ImageCarousel
+              images={images}
               alt={description}
-              className="w-full h-72 object-contain object-center"
+              aspectRatio="card"
+              onSlideChange={setCurrentIndex}
             />
             {isNsfw && !showNsfw && (
               <div className="absolute inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center">

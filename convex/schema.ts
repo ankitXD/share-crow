@@ -4,6 +4,7 @@ import { v } from "convex/values";
 export default defineSchema({
   memes: defineTable({
     imageUrl: v.string(),
+    imageUrls: v.optional(v.array(v.string())),
     description: v.string(),
     uploadedAt: v.number(),
     isNsfw: v.optional(v.boolean()),

@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Image from "next/image";
+import React, { useEffect, useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { notFound } from "next/navigation";
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ReactionBar } from "@/components/reaction-bar";
 import { CommentSection } from "@/components/comment-section";
+import { ImageCarousel, getMemeImages } from "@/components/image-carousel";
 import { getFingerprint } from "@/lib/fingerprint";
 import Link from "next/link";
 
@@ -28,6 +28,7 @@ export function MemeClient({ shortId }: MemeClientProps) {
   const meme = useQuery(api.memes.getMemeByShortId, { shortId });
   const adjacent = useQuery(api.memes.getAdjacentMemes, { shortId });
   const [fingerprint, setFingerprint] = useState("");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const recordView = useMutation(api.views.recordView);
 
   useEffect(() => {
@@ -46,6 +47,10 @@ export function MemeClient({ shortId }: MemeClientProps) {
     api.reactions.getReactionsForMeme,
     meme ? { memeId: meme._id, fingerprint: fingerprint || undefined } : "skip",
   );
+
+  const handleSlideChange = useCallback((index: number) => {
+    setCurrentImageIndex(index);
+  }, []);
 
   if (meme === undefined) {
     return (
@@ -66,8 +71,10 @@ export function MemeClient({ shortId }: MemeClientProps) {
   };
 
   const handleDownload = async () => {
+    const images = getMemeImages(meme);
+    const downloadUrl = images[currentImageIndex];
     try {
-      const response = await fetch(meme.imageUrl);
+      const response = await fetch(downloadUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -94,14 +101,12 @@ export function MemeClient({ shortId }: MemeClientProps) {
           </Link>
         </div>
         <div className="max-w-4xl mx-auto">
-          <div className="relative w-full flex justify-center">
-            <Image
-              src={meme.imageUrl}
+          <div className="relative w-full flex justify-center group">
+            <ImageCarousel
+              images={getMemeImages(meme)}
               alt={meme.description}
-              width={800}
-              height={600}
-              className="w-full h-auto max-h-screen object-contain shadow-2xl"
-              priority
+              aspectRatio="full"
+              onSlideChange={handleSlideChange}
             />
           </div>
           <div className="mt-6 flex flex-col gap-4">
