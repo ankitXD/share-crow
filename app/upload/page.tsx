@@ -25,6 +25,47 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 const MAX_IMAGES = 10;
+const COMPRESS_THRESHOLD_BYTES = 1 * 1024 * 1024; // 1 MB
+const TARGET_SIZE_BYTES = 500 * 1024; // 500 KB
+
+async function compressImage(file: File): Promise<File> {
+  // Don't compress GIFs (would break animation) or already-small files
+  if (file.type === "image/gif" || file.size <= COMPRESS_THRESHOLD_BYTES) {
+    return file;
+  }
+
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+
+  // Binary-search quality to hit target size
+  let lo = 0.1;
+  let hi = 0.92;
+  let bestBlob: Blob | null = null;
+
+  for (let i = 0; i < 8; i++) {
+    const mid = (lo + hi) / 2;
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/jpeg", mid),
+    );
+    if (!blob) break;
+    bestBlob = blob;
+    if (blob.size <= TARGET_SIZE_BYTES) {
+      lo = mid; // can afford higher quality
+    } else {
+      hi = mid; // need lower quality
+    }
+  }
+
+  if (!bestBlob) return file;
+
+  const outName = file.name.replace(/\.[^.]+$/, ".jpg");
+  return new File([bestBlob], outName, { type: "image/jpeg" });
+}
 
 interface ImageItem {
   file: File;
@@ -201,9 +242,22 @@ export default function UploadPage() {
     setIsUploading(true);
 
     try {
+      // Compress any image over 1 MB down to ~500 KB before sending
+      const needsCompression = images.some(
+        (img) =>
+          img.file.type !== "image/gif" &&
+          img.file.size > COMPRESS_THRESHOLD_BYTES,
+      );
+      if (needsCompression) {
+        toast.info("Compressing large images…");
+      }
+      const compressedFiles = await Promise.all(
+        images.map((img) => compressImage(img.file)),
+      );
+
       const formData = new FormData();
-      for (const img of images) {
-        formData.append("files", img.file);
+      for (const file of compressedFiles) {
+        formData.append("files", file);
       }
 
       const response = await fetch("/api/upload", {
