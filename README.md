@@ -22,6 +22,9 @@ This project is in **active development** with a functional full-stack meme shar
 
 - **Image Display**: High-quality image rendering with fixed-height cover display
 - **NSFW Content Protection**: Optional blur overlay for NSFW memes with "Show" button to reveal
+- **Emoji Reaction Bar**: 6 predefined emojis (😂🔥💀❤️👎😮) with toggle behavior and counts
+- **View Count**: Eye icon with compact number formatting (1k, 1.2k)
+- **Comment Count**: Message icon showing number of comments
 - **Hover Effects**: Smooth scale animations and gradient overlays on hover
 - **Share Button**: Copies shareable meme link (`/meme/[id]`) to clipboard with toast notification
 - **Download Button**: Downloads meme image directly to user's device via blob fetch
@@ -36,6 +39,9 @@ This project is in **active development** with a functional full-stack meme shar
 - **SEO Optimization**: Dynamic Open Graph meta tags for social sharing
 - **Full-size Image**: Responsive image display with auto height and max-height constraint
 - **Meme Description**: Centered text below the image
+- **View Count Display**: Shows total views, tracked on page load with 24h dedup per fingerprint
+- **Large Reaction Bar**: Emoji reactions with toggle behavior and real-time updates
+- **Comment Section**: Anonymous commenting with optional name, 500 char limit, edit/delete own comments
 - **Share & Download Buttons**: Same functionality as meme card actions
 - **Loading State**: Spinner while meme data loads
 - **404 Handling**: Calls `notFound()` if meme ID doesn't exist
@@ -64,12 +70,45 @@ This project is in **active development** with a functional full-stack meme shar
 
 ### 🗄️ Database (Convex)
 
-- **Schema**: `memes` table with `imageUrl`, `description`, `uploadedAt`, and `isNsfw` fields
-- **Index**: `by_uploadedAt` index for efficient sorted queries
-- **Pagination**: Memes queried with pagination (6 per page)
-- **Queries**: `getMemesWithPagination` (paginated memes, newest first) and `getMeme` (single meme by ID)
-- **Mutations**: `addMeme` (insert new meme with timestamp and NSFW flag)
+- **Schema**: 6 tables — `memes`, `users`, `sessions`, `reactions`, `memeViews`, `comments`
+- **Memes Table**: `imageUrl`, `description`, `uploadedAt`, `isNsfw?`, `shortId`, `viewCount?`
+- **Reactions Table**: `memeId`, `fingerprint`, `emoji`, `createdAt` — one reaction per fingerprint per meme
+- **Views Table**: `memeId`, `fingerprint`, `viewedAt` — 24h deduplication window
+- **Comments Table**: `memeId`, `fingerprint`, `name`, `text`, `createdAt`, `updatedAt?`, `isDeleted?`
+- **Pagination**: Memes queried with pagination (6 per page) with joined reaction counts, comment counts, view counts
+- **Queries**: `getMemesWithPagination` (paginated with stats), `getMemeByShortId`, `getAdjacentMemes`
+- **Mutations**: `addMeme`, `toggleReaction`, `recordView`, `addComment`, `editComment`, `deleteComment`
 - **Provider**: `ConvexClientProvider` wrapping the app with `NEXT_PUBLIC_CONVEX_URL`
+- **Constraint**: Object keys must be ASCII-only — reaction counts use `Array<{emoji, count}>` format
+
+### 😂 Reactions (Anonymous)
+
+- **6 Predefined Emojis**: 😂 🔥 💀 ❤️ 👎 😮
+- **Toggle Behavior**: Click to react, click same to un-react, click different to switch
+- **One Per User**: One reaction per fingerprint per meme
+- **Debounced**: 300ms client-side debounce to prevent spam
+- **Real-time**: Updates via Convex subscriptions propagate to all viewers
+
+### 👁️ Views (Anonymous)
+
+- **Tracked on Detail Page**: Only meme detail page visits count (not home grid)
+- **Deduplicated**: Per fingerprint per meme with 24h window
+- **Denormalized**: `viewCount` on memes table for fast reads
+- **Backward Compatible**: Existing memes default to 0 views via `v.optional`
+
+### 💬 Comments (Anonymous)
+
+- **Anonymous Posting**: Optional display name (defaults to "Anonymous")
+- **500 Character Limit**: HTML stripped server-side
+- **Edit/Delete Own**: Matched by fingerprint, soft delete via `isDeleted` flag
+- **Real-time Updates**: Via Convex subscriptions
+
+### 🔑 Anonymous Fingerprint System
+
+- **`crypto.randomUUID()`** stored in localStorage (`sc_fingerprint` key)
+- **Shared** by reactions, views, and comments
+- **Generated once** per browser, persists across sessions
+- **No login required** for any interaction
 
 ### 🎨 Design System
 
@@ -107,10 +146,8 @@ This project is in **active development** with a functional full-stack meme shar
 
 ## 🚧 Not Yet Implemented
 
-- User authentication/authorization
 - Search and filtering functionality
 - User profiles
-- Comments or reactions
 - Admin panel
 - Analytics
 
@@ -156,28 +193,45 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ```
 app/
-  ├── page.tsx              # Home page with meme grid (Convex query)
+  ├── page.tsx              # Home page with meme grid
+  ├── home-content.tsx      # Paginated meme grid (client component)
   ├── layout.tsx            # Root layout with Convex + theme providers
   ├── globals.css           # Global styles and CSS variables
+  ├── not-found.tsx         # Custom 404 page
   ├── api/
-  │   └── upload/
-  │       └── route.ts      # Cloudinary upload API route
+  │   ├── auth/[...all]/route.ts  # Auth endpoints
+  │   ├── memes/[shortId]/route.ts # GET meme by shortId
+  │   ├── og/[shortId]/route.tsx   # OG image generation
+  │   └── upload/route.ts          # Cloudinary upload API route
+  ├── login/page.tsx        # Sign in / sign up page
   ├── meme/
-  │   └── [id]/
-  │       └── page.tsx      # Individual meme detail page
-  └── upload/
-      └── page.tsx          # Upload page with form
+  │   └── [shortId]/
+  │       ├── page.tsx      # Meme detail (server: metadata + OG)
+  │       └── meme-client.tsx # Meme detail view (client)
+  └── upload/page.tsx       # Upload page with form
 components/
   ├── convex-provider.tsx   # Convex client provider
-  ├── meme-card.tsx         # Meme card with share/download
+  ├── meme-card.tsx         # Meme card with reactions, stats, share/download
+  ├── reaction-bar.tsx      # Emoji reaction toggle bar
+  ├── comment-section.tsx   # Comment list + form (anonymous)
   ├── theme-provider.tsx    # next-themes provider wrapper
+  ├── pwa-register.tsx      # Service worker registration
   └── ui/                   # shadcn/ui components (50+)
 config/
   └── cloudinary.ts         # Cloudinary SDK configuration
 convex/
-  ├── schema.ts             # Database schema (memes table)
-  ├── memes.ts              # Queries and mutations
+  ├── schema.ts             # Database schema (6 tables)
+  ├── memes.ts              # Meme queries & mutations (with joined stats)
+  ├── reactions.ts          # Reaction toggle & queries
+  ├── views.ts              # View tracking (24h dedup)
+  ├── comments.ts           # Comment CRUD
+  ├── users.ts              # User & session queries/mutations
   └── _generated/           # Auto-generated Convex types
 lib/
+  ├── auth-client.ts        # Client-side auth hooks
+  ├── auth.ts               # Server-side session helper
+  ├── convex-server.ts      # ConvexHttpClient for server-side
+  ├── fingerprint.ts        # Anonymous user fingerprint
+  ├── reactions.ts          # REACTION_EMOJIS constant
   └── utils.ts              # Utility functions (cn helper)
 ```
