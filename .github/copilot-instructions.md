@@ -52,7 +52,9 @@ app/
     upload/
       route.ts            # Image upload to Cloudinary (auth required)
 components/
-  meme-card.tsx           # Meme card with NSFW blur, download, share
+  meme-card.tsx           # Meme card with NSFW blur, reactions, stats, download, share
+  reaction-bar.tsx        # Emoji reaction toggle bar (anonymous, fingerprint-based)
+  comment-section.tsx     # Comment list + form (anonymous with optional name)
   convex-provider.tsx     # Convex client provider
   theme-provider.tsx      # next-themes dark mode provider
   pwa-register.tsx        # Service worker registration
@@ -60,8 +62,11 @@ components/
 config/
   cloudinary.ts           # Cloudinary v2 SDK configuration
 convex/
-  schema.ts               # Database schema (memes, users, sessions)
-  memes.ts                # Meme queries & mutations (pagination, shortId)
+  schema.ts               # Database schema (memes, users, sessions, reactions, memeViews, comments)
+  memes.ts                # Meme queries & mutations (pagination with joined stats, shortId)
+  reactions.ts            # Reaction toggle mutation & queries (emoji reactions)
+  views.ts                # View tracking mutation (24h dedup per fingerprint)
+  comments.ts             # Comment CRUD mutations & queries (anonymous)
   users.ts                # User & session queries/mutations
 hooks/
   use-mobile.ts           # Mobile breakpoint detection (768px)
@@ -69,6 +74,8 @@ lib/
   auth-client.ts          # Client-side auth hooks & functions (useSession, signIn, signUp, signOut)
   auth.ts                 # Server-side session helper (getServerSession)
   convex-server.ts        # ConvexHttpClient for server-side queries
+  fingerprint.ts          # Anonymous user fingerprint (crypto.randomUUID in localStorage)
+  reactions.ts            # REACTION_EMOJIS constant & ReactionEmoji type
   utils.ts                # cn() utility (clsx + tailwind-merge)
 public/
   manifest.json           # PWA manifest
@@ -80,9 +87,12 @@ public/
 
 ### Tables
 
-- **memes**: `imageUrl`, `description`, `uploadedAt`, `isNsfw?`, `shortId` (7-char Base62). Indexes: `by_uploadedAt`, `by_shortId`
+- **memes**: `imageUrl`, `description`, `uploadedAt`, `isNsfw?`, `shortId` (7-char Base62), `viewCount?`. Indexes: `by_uploadedAt`, `by_shortId`
 - **users**: `email`, `name`, `passwordHash`, `createdAt`. Index: `by_email`
 - **sessions**: `userId` (ref to users), `token` (64-char hex), `expiresAt`, `createdAt`. Index: `by_token`
+- **reactions**: `memeId`, `fingerprint`, `emoji`, `createdAt`. Indexes: `by_memeId`, `by_memeId_fingerprint`
+- **memeViews**: `memeId`, `fingerprint`, `viewedAt`. Index: `by_memeId_fingerprint`
+- **comments**: `memeId`, `fingerprint`, `name`, `text`, `createdAt`, `updatedAt?`, `isDeleted?`. Indexes: `by_memeId`, `by_memeId_createdAt`
 
 ## Environment Variables
 
@@ -122,9 +132,10 @@ public/
 
 ### State Management
 
-- Convex `useQuery` for real-time data
+- Convex `useQuery` for real-time data (reactions, comments update in real-time)
 - React hooks for local UI state
 - `sonner` toast for notifications
+- Anonymous fingerprint via `getFingerprint()` from `lib/fingerprint.ts`
 
 ## Key Features
 
@@ -132,6 +143,8 @@ public/
 
 - Display meme image with NSFW blur overlay (toggle to reveal)
 - Show description text (line-clamp-2)
+- Emoji reaction bar (😂🔥💀❤️👎😮) with toggle behavior
+- View count (eye icon) and comment count (message icon)
 - Download button (fetches blob and triggers save as `sharecrow-{shortId}.jpg`)
 - Share button that copies meme link to clipboard
 - Toast notifications: "Link Copied", "Download Started"
@@ -141,8 +154,49 @@ public/
 
 - Full-screen image display
 - Server-side OG metadata generation for social sharing
+- View count display (tracked on page load, 24h dedup per fingerprint)
+- Large emoji reaction bar
 - Download and share buttons
+- Comment section with anonymous posting (optional name, 500 char limit)
+- Comment edit/delete for own comments (matched by fingerprint)
 - 404 handling for missing memes
+
+### Reactions (Anonymous)
+
+- 6 predefined emojis: 😂 🔥 💀 ❤️ 👎 😮
+- Toggle behavior: click to react, click same to un-react, click different to switch
+- One reaction per fingerprint per meme
+- 300ms client-side debounce to prevent spam
+- Real-time updates via Convex subscriptions
+- Reaction counts joined in pagination query to avoid N+1
+
+### Views (Anonymous)
+
+- Tracked on meme detail page load only (not home grid)
+- Deduplicated per fingerprint per meme with 24h window
+- `viewCount` denormalized on memes table for fast reads
+- `memeViews` table for dedup tracking
+- Existing memes default to 0 views (`v.optional`)
+
+### Comments (Anonymous)
+
+- Anonymous posting with optional display name (defaults to "Anonymous")
+- 500 character limit, HTML stripped server-side
+- Soft delete (`isDeleted` flag) for own comments
+- Edit support for own comments (matched by fingerprint)
+- Real-time updates via Convex subscriptions
+
+### Anonymous Fingerprint System
+
+- `crypto.randomUUID()` stored in localStorage (`sc_fingerprint` key)
+- Shared by reactions, views, and comments
+- Generated once per browser, persists across sessions
+- No login required for any interaction
+
+### Convex Data Constraints
+
+- Object keys must be ASCII-only — emoji-keyed objects are not allowed
+- Reaction counts use array format `Array<{emoji, count}>` instead of `Record<emoji, count>`
 
 ### Upload (`/upload`)
 
