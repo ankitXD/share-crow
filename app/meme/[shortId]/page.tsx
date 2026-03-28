@@ -3,6 +3,20 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { MemeClient } from "./meme-client";
 
+/**
+ * ISR Configuration: Cache meme pages for 10 minutes
+ * - First request generates HTML + metadata and caches
+ * - Subsequent requests (within 10 min) served from cache (~50ms)
+ * - After 10 min, background revalidation generates fresh HTML
+ *
+ * Why ISR (not SSR):
+ * - Meme content is immutable (image & description never change)
+ * - Views/reactions/comments update in real-time via client-side Convex
+ * - OG metadata is cached for fast social media crawls (SEO benefit)
+ * - Eliminates expensive server queries for cached pages (2-4x faster)
+ */
+export const revalidate = 600; // 10 minutes
+
 interface PageProps {
   params: Promise<{ shortId: string }>;
 }
