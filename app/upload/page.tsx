@@ -10,6 +10,7 @@ import {
   LogOut,
   GripVertical,
   Plus,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -311,7 +312,13 @@ export default function UploadPage() {
           <h1 className="text-4xl md:text-5xl font-bold font-creepster">
             Upload Meme
           </h1>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Link href="/admin">
+              <Button variant="outline" size="sm">
+                <Shield className="size-4 mr-2" />
+                Admin
+              </Button>
+            </Link>
             <Button
               variant="ghost"
               size="sm"
