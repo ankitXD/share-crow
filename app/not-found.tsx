@@ -21,8 +21,9 @@ export default function NotFound() {
             The crow flew away with this page! 🐦
           </p>
           <p className="text-base text-muted-foreground">
-            It seems this meme doesn't exist or has been deleted. Don't worry,
-            there are plenty of other hilarious memes waiting for you.
+            It seems this meme doesn&apos;t exist or has been deleted.
+            Don&apos;t worry, there are plenty of other hilarious memes waiting
+            for you.
           </p>
         </div>
 
@@ -33,9 +34,9 @@ export default function NotFound() {
               Back to Home
             </Button>
           </Link>
-          <Link href="/">
+          <Link href="/upload">
             <Button size="lg" variant="outline" className="w-full sm:w-auto">
-              Browse Memes
+              Upload a Meme
             </Button>
           </Link>
         </div>
@@ -43,11 +44,11 @@ export default function NotFound() {
         {/* Fun ASCII Art */}
         <div className="pt-8 text-muted-foreground text-sm font-mono space-y-1">
           <pre>
-            {`    ^__^
-    (oo)\\_______
-    (__)\\       )\\/\\
-        ||----w |
-        ||     ||`}
+            {`     ___
+    (o o)
+   /  V  \\
+  /(  _  )\\
+    ^^ ^^`}
           </pre>
           <p className="text-xs">The crow that got away...</p>
         </div>

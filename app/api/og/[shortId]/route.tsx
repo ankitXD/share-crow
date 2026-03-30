@@ -4,6 +4,9 @@ import { api } from "@/convex/_generated/api";
 
 export const runtime = "edge";
 
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL!;
+const convex = new ConvexHttpClient(convexUrl);
+
 interface RouteParams {
   params: Promise<{ shortId: string }>;
 }
@@ -12,12 +15,6 @@ export async function GET(request: Request, { params }: RouteParams) {
   const { shortId } = await params;
 
   try {
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) {
-      throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
-    }
-
-    const convex = new ConvexHttpClient(convexUrl);
     const meme = await convex.query(api.memes.getMemeByShortId, {
       shortId: shortId,
     });

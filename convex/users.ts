@@ -93,13 +93,42 @@ export const deleteSession = mutation({
   },
 });
 
-// Internal query for use by API routes via ConvexHttpClient
+export const cleanupExpiredSessions = mutation({
+  handler: async (ctx) => {
+    const now = Date.now();
+    const sessions = await ctx.db.query("sessions").collect();
+    let deleted = 0;
+    for (const session of sessions) {
+      if (session.expiresAt < now) {
+        await ctx.db.delete(session._id);
+        deleted++;
+      }
+    }
+    return { deleted };
+  },
+});
+
+// Query for server-side auth verification via ConvexHttpClient.
+// Returns passwordHash only when a valid server secret is provided.
 export const getUserByEmailInternal = query({
-  args: { email: v.string() },
+  args: { email: v.string(), serverSecret: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
+    if (!user) return null;
+    // Only return passwordHash when called with the correct server secret
+    if (args.serverSecret === process.env.SERVER_SECRET) {
+      return user;
+    }
+    // Strip sensitive data for unauthenticated callers
+    return {
+      _id: user._id,
+      _creationTime: user._creationTime,
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+    };
   },
 });

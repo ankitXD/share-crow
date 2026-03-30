@@ -6,6 +6,29 @@ import { api } from "convex/_generated/api";
 const SESSION_COOKIE = "session_token";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 
+// Simple in-memory rate limiter (per IP, per action)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_ATTEMPTS = 10; // 10 attempts per minute
+
+function checkRateLimit(ip: string, action: string): boolean {
+  const key = `${ip}:${action}`;
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+
+  if (entry.count >= MAX_ATTEMPTS) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
   const hash = scryptSync(password, salt, 64).toString("hex");
@@ -35,6 +58,19 @@ export async function POST(request: NextRequest) {
   const url = new URL(request.url);
   const pathSegments = url.pathname.split("/").filter(Boolean);
   const action = pathSegments[pathSegments.length - 1];
+
+  // Rate limit sign-in and sign-up attempts
+  if (action === "signin" || action === "signup") {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
+    if (!checkRateLimit(ip, action)) {
+      return NextResponse.json(
+        { error: "Too many attempts. Please try again later." },
+        { status: 429 },
+      );
+    }
+  }
 
   if (action === "signup") {
     if (process.env.VERCEL) {
@@ -136,6 +172,7 @@ async function handleSignIn(request: NextRequest) {
 
     const user = await convexClient.query(api.users.getUserByEmailInternal, {
       email,
+      serverSecret: process.env.SERVER_SECRET,
     });
 
     if (!user) {
@@ -145,7 +182,10 @@ async function handleSignIn(request: NextRequest) {
       );
     }
 
-    if (!verifyPassword(password, user.passwordHash)) {
+    if (
+      !("passwordHash" in user) ||
+      !verifyPassword(password, user.passwordHash)
+    ) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 },
@@ -199,5 +239,5 @@ async function handleGetSession(request: NextRequest) {
     return response;
   }
 
-  return NextResponse.json({ session: result });
+  return NextResponse.json({ session: { ...result, token } });
 }

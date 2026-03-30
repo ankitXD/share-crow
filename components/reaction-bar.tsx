@@ -5,8 +5,8 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { getFingerprint } from "@/lib/fingerprint";
 
-const REACTION_EMOJIS = ["😂", "🔥", "💀", "❤️", "👎", "😮"] as const;
-import { useCallback, useRef } from "react";
+import { REACTION_EMOJIS } from "@/lib/reactions";
+import { useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 interface ReactionBarProps {
@@ -24,6 +24,12 @@ export function ReactionBar({
 }: ReactionBarProps) {
   const toggleReaction = useMutation(api.reactions.toggleReaction);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const handleReaction = useCallback(
     (emoji: string) => {
@@ -58,6 +64,7 @@ export function ReactionBar({
               e.stopPropagation();
               handleReaction(emoji);
             }}
+            aria-label={`React with ${emoji}${count > 0 ? ` (${count})` : ""}`}
             className={cn(
               "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 transition-colors",
               size === "lg" ? "text-base px-3 py-1" : "text-sm",

@@ -12,16 +12,11 @@ import { ReactionBar } from "@/components/reaction-bar";
 import { CommentSection } from "@/components/comment-section";
 import { ImageCarousel, getMemeImages } from "@/components/image-carousel";
 import { getFingerprint } from "@/lib/fingerprint";
+import { formatCount } from "@/lib/utils";
 import Link from "next/link";
 
 interface MemeClientProps {
   shortId: string;
-}
-
-function formatCount(n: number): string {
-  if (n >= 1000)
-    return Intl.NumberFormat("en", { notation: "compact" }).format(n);
-  return String(n);
 }
 
 export function MemeClient({ shortId }: MemeClientProps) {
@@ -66,8 +61,12 @@ export function MemeClient({ shortId }: MemeClientProps) {
 
   const handleShare = async () => {
     const url = window.location.href;
-    await navigator.clipboard.writeText(url);
-    toast("Link Copied");
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("Link Copied");
+    } catch {
+      toast.error("Failed to copy link");
+    }
   };
 
   const handleDownload = async () => {

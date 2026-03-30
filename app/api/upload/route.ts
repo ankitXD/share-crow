@@ -3,6 +3,14 @@ import { UploadApiResponse } from "cloudinary";
 import cloudinary from "../../../config/cloudinary";
 import { getServerSession } from "@/lib/auth";
 
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(request.cookies);
@@ -29,6 +37,24 @@ export async function POST(request: NextRequest) {
         { error: "Maximum 10 images allowed" },
         { status: 400 },
       );
+    }
+
+    // Validate file types and sizes
+    for (const file of filesToUpload) {
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        return NextResponse.json(
+          {
+            error: `Invalid file type: ${file.type}. Allowed: JPEG, PNG, GIF, WebP`,
+          },
+          { status: 400 },
+        );
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: `File "${file.name}" exceeds 10 MB limit` },
+          { status: 400 },
+        );
+      }
     }
 
     const uploadFile = async (file: File): Promise<string> => {

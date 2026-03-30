@@ -1,9 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
 import { Share2, Download, Eye, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ReactionBar } from "@/components/reaction-bar";
 import { ImageCarousel, getMemeImages } from "@/components/image-carousel";
 import { Id } from "@/convex/_generated/dataModel";
-import Link from "next/link";
+import { formatCount } from "@/lib/utils";
 
 interface MemeCardProps {
   memeId: Id<"memes">;
@@ -27,12 +27,6 @@ interface MemeCardProps {
   commentCount: number;
   reactionCounts: Array<{ emoji: string; count: number }>;
   userReaction: string | null;
-}
-
-function formatCount(n: number): string {
-  if (n >= 1000)
-    return Intl.NumberFormat("en", { notation: "compact" }).format(n);
-  return String(n);
 }
 
 export function MemeCard({
@@ -50,12 +44,22 @@ export function MemeCard({
   const [showNsfw, setShowNsfw] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const images = getMemeImages({ imageUrl, imageUrls });
+  const router = useRouter();
+
+  const handleCardClick = () => {
+    router.push(`/meme/${shortId}`);
+  };
+
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const url = `${window.location.origin}/meme/${shortId}`;
-    await navigator.clipboard.writeText(url);
-    toast("Link Copied");
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("Link Copied");
+    } catch {
+      toast.error("Failed to copy link");
+    }
   };
 
   const handleDownload = async (e: React.MouseEvent) => {
@@ -79,7 +83,14 @@ export function MemeCard({
   };
 
   return (
-    <Link href={`/meme/${shortId}`}>
+    <div
+      onClick={handleCardClick}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") handleCardClick();
+      }}
+    >
       <Card className="group overflow-hidden bg-card/50 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 cursor-pointer">
         <CardContent className="p-0 relative">
           <div className="overflow-hidden relative">
@@ -160,6 +171,6 @@ export function MemeCard({
           </div>
         </CardFooter>
       </Card>
-    </Link>
+    </div>
   );
 }

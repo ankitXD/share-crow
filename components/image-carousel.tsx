@@ -69,7 +69,7 @@ export function ImageCarousel({
       >
         <CarouselContent className="ml-0">
           {images.map((url, i) => (
-            <CarouselItem key={i} className="pl-0">
+            <CarouselItem key={url} className="pl-0">
               <img
                 src={url}
                 alt={`${alt} - ${i + 1}`}

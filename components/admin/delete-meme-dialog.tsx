@@ -26,12 +26,14 @@ interface DeleteMemeDialogProps {
     description: string;
     imageUrl: string;
   } | null;
+  sessionToken: string;
 }
 
 export function DeleteMemeDialog({
   open,
   onOpenChange,
   meme,
+  sessionToken,
 }: DeleteMemeDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteMeme = useMutation(api.admin.deleteMeme);
@@ -40,7 +42,7 @@ export function DeleteMemeDialog({
     if (!meme) return;
     setIsDeleting(true);
     try {
-      await deleteMeme({ memeId: meme._id });
+      await deleteMeme({ memeId: meme._id, sessionToken });
       toast.success("Meme deleted");
       onOpenChange(false);
     } catch {

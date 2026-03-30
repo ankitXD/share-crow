@@ -10,6 +10,7 @@ interface User {
 
 interface SessionData {
   user: User;
+  token: string;
 }
 
 interface AuthResult {
@@ -24,7 +25,11 @@ export function useSession() {
     try {
       const res = await fetch("/api/auth/session");
       const json = await res.json();
-      setData(json.session ? { user: json.session.user } : null);
+      setData(
+        json.session
+          ? { user: json.session.user, token: json.session.token }
+          : null,
+      );
     } catch {
       setData(null);
     } finally {

@@ -35,37 +35,46 @@ async function compressImage(file: File): Promise<File> {
     return file;
   }
 
-  const bitmap = await createImageBitmap(file);
-  const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(bitmap, 0, 0);
-  bitmap.close();
-
-  // Binary-search quality to hit target size
-  let lo = 0.1;
-  let hi = 0.92;
-  let bestBlob: Blob | null = null;
-
-  for (let i = 0; i < 8; i++) {
-    const mid = (lo + hi) / 2;
-    const blob = await new Promise<Blob | null>((res) =>
-      canvas.toBlob(res, "image/jpeg", mid),
-    );
-    if (!blob) break;
-    bestBlob = blob;
-    if (blob.size <= TARGET_SIZE_BYTES) {
-      lo = mid; // can afford higher quality
-    } else {
-      hi = mid; // need lower quality
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      return file;
     }
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    // Binary-search quality to hit target size
+    let lo = 0.1;
+    let hi = 0.92;
+    let bestBlob: Blob | null = null;
+
+    for (let i = 0; i < 8; i++) {
+      const mid = (lo + hi) / 2;
+      const blob = await new Promise<Blob | null>((res) =>
+        canvas.toBlob(res, "image/jpeg", mid),
+      );
+      if (!blob) break;
+      bestBlob = blob;
+      if (blob.size <= TARGET_SIZE_BYTES) {
+        lo = mid; // can afford higher quality
+      } else {
+        hi = mid; // need lower quality
+      }
+    }
+
+    if (!bestBlob) return file;
+
+    const outName = file.name.replace(/\.[^.]+$/, ".jpg");
+    return new File([bestBlob], outName, { type: "image/jpeg" });
+  } catch {
+    // If compression fails (corrupt file, etc.), return original
+    return file;
   }
-
-  if (!bestBlob) return file;
-
-  const outName = file.name.replace(/\.[^.]+$/, ".jpg");
-  return new File([bestBlob], outName, { type: "image/jpeg" });
 }
 
 interface ImageItem {
@@ -83,6 +92,7 @@ export default function UploadPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMoreInputRef = useRef<HTMLInputElement>(null);
+  const imagesRef = useRef<ImageItem[]>([]);
   const router = useRouter();
 
   const addMeme = useMutation(api.memes.addMeme);
@@ -143,12 +153,16 @@ export default function UploadPage() {
     return () => window.removeEventListener("paste", handlePaste);
   }, [addFiles]);
 
+  // Keep ref in sync with state for cleanup
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
+
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
-      images.forEach((img) => URL.revokeObjectURL(img.preview));
+      imagesRef.current.forEach((img) => URL.revokeObjectURL(img.preview));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isPending) {
@@ -530,7 +544,7 @@ export default function UploadPage() {
           >
             {isUploading ? (
               <>
-                <span className="animate-spin mr-2">⏳</span>
+                <Loader2 className="size-5 mr-2 animate-spin" />
                 Uploading...
               </>
             ) : (

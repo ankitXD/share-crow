@@ -1,8 +1,26 @@
 import { mutation, query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 
+async function requireAdmin(ctx: { db: QueryCtx["db"] }, sessionToken: string) {
+  const session = await ctx.db
+    .query("sessions")
+    .withIndex("by_token", (q) => q.eq("token", sessionToken))
+    .first();
+  if (!session || session.expiresAt < Date.now()) {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  const user = await ctx.db.get(session.userId);
+  if (!user) {
+    throw new Error("Unauthorized: user not found");
+  }
+  return user;
+}
+
 export const getAdminOverview = query({
-  handler: async (ctx) => {
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const allMemes = await ctx.db.query("memes").collect();
     const totalMemes = allMemes.length;
     const totalViews = allMemes.reduce((sum, m) => sum + (m.viewCount ?? 0), 0);
@@ -18,7 +36,9 @@ export const getAdminOverview = query({
 });
 
 export const getAllMemesWithStats = query({
-  handler: async (ctx) => {
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const allMemes = await ctx.db
       .query("memes")
       .withIndex("by_uploadedAt")
@@ -51,8 +71,9 @@ export const getAllMemesWithStats = query({
 });
 
 export const getMemeAdminDetail = query({
-  args: { memeId: v.id("memes") },
+  args: { memeId: v.id("memes"), sessionToken: v.string() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const meme = await ctx.db.get(args.memeId);
     if (!meme) return null;
 
@@ -101,8 +122,10 @@ export const updateMeme = mutation({
     memeId: v.id("memes"),
     description: v.optional(v.string()),
     isNsfw: v.optional(v.boolean()),
+    sessionToken: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const meme = await ctx.db.get(args.memeId);
     if (!meme) throw new Error("Meme not found");
 
@@ -115,8 +138,9 @@ export const updateMeme = mutation({
 });
 
 export const deleteMeme = mutation({
-  args: { memeId: v.id("memes") },
+  args: { memeId: v.id("memes"), sessionToken: v.string() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const meme = await ctx.db.get(args.memeId);
     if (!meme) throw new Error("Meme not found");
 
@@ -149,8 +173,9 @@ export const deleteMeme = mutation({
 });
 
 export const adminDeleteComment = mutation({
-  args: { commentId: v.id("comments") },
+  args: { commentId: v.id("comments"), sessionToken: v.string() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.sessionToken);
     const comment = await ctx.db.get(args.commentId);
     if (!comment) throw new Error("Comment not found");
     await ctx.db.delete(args.commentId);

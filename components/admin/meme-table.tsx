@@ -17,7 +17,7 @@ import { Pencil, Trash2, Search, ArrowUpDown } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 
-interface MemeWithStats {
+export interface MemeWithStats {
   _id: Id<"memes">;
   imageUrl: string;
   imageUrls?: string[];
@@ -32,6 +32,30 @@ interface MemeWithStats {
 
 type SortField = "uploadedAt" | "viewCount" | "reactionCount" | "commentCount";
 type SortDirection = "asc" | "desc";
+
+function SortButton({
+  field,
+  activeSortField,
+  children,
+  onSort,
+}: {
+  field: SortField;
+  activeSortField: SortField;
+  children: React.ReactNode;
+  onSort: (field: SortField) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSort(field)}
+      className="flex items-center gap-1 hover:text-foreground transition-colors"
+    >
+      {children}
+      <ArrowUpDown
+        className={`size-3 ${activeSortField === field ? "text-primary" : ""}`}
+      />
+    </button>
+  );
+}
 
 interface MemeTableProps {
   memes: MemeWithStats[];
@@ -88,24 +112,6 @@ export function MemeTable({
     });
   };
 
-  const SortButton = ({
-    field,
-    children,
-  }: {
-    field: SortField;
-    children: React.ReactNode;
-  }) => (
-    <button
-      onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-foreground transition-colors"
-    >
-      {children}
-      <ArrowUpDown
-        className={`size-3 ${sortField === field ? "text-primary" : ""}`}
-      />
-    </button>
-  );
-
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -126,17 +132,41 @@ export function MemeTable({
               <TableHead>Description</TableHead>
               <TableHead className="w-24">ShortId</TableHead>
               <TableHead className="w-20">
-                <SortButton field="viewCount">Views</SortButton>
+                <SortButton
+                  field="viewCount"
+                  activeSortField={sortField}
+                  onSort={handleSort}
+                >
+                  Views
+                </SortButton>
               </TableHead>
               <TableHead className="w-24">
-                <SortButton field="reactionCount">Reactions</SortButton>
+                <SortButton
+                  field="reactionCount"
+                  activeSortField={sortField}
+                  onSort={handleSort}
+                >
+                  Reactions
+                </SortButton>
               </TableHead>
               <TableHead className="w-24">
-                <SortButton field="commentCount">Comments</SortButton>
+                <SortButton
+                  field="commentCount"
+                  activeSortField={sortField}
+                  onSort={handleSort}
+                >
+                  Comments
+                </SortButton>
               </TableHead>
               <TableHead className="w-16">NSFW</TableHead>
               <TableHead className="w-28">
-                <SortButton field="uploadedAt">Date</SortButton>
+                <SortButton
+                  field="uploadedAt"
+                  activeSortField={sortField}
+                  onSort={handleSort}
+                >
+                  Date
+                </SortButton>
               </TableHead>
               <TableHead className="w-24 text-right">Actions</TableHead>
             </TableRow>
@@ -161,7 +191,7 @@ export function MemeTable({
                   <TableCell>
                     <img
                       src={meme.imageUrl}
-                      alt=""
+                      alt={meme.description}
                       className="size-10 rounded object-cover"
                     />
                   </TableCell>

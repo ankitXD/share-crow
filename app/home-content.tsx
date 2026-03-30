@@ -8,12 +8,14 @@ import { Upload, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getFingerprint } from "@/lib/fingerprint";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [fingerprint, setFingerprint] = useState<string>("");
+  const [pageInputValue, setPageInputValue] = useState<string>("1");
+  const pageInputDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setFingerprint(getFingerprint());
@@ -29,9 +31,20 @@ export function HomeContent() {
   const totalPages = result?.totalPages || 0;
   const currentPage = result?.currentPage || 1;
 
+  // Keep page input in sync with the actual current page
+  useEffect(() => {
+    setPageInputValue(String(currentPage));
+  }, [currentPage]);
+
+  useEffect(() => {
+    return () => {
+      if (pageInputDebounce.current) clearTimeout(pageInputDebounce.current);
+    };
+  }, []);
+
   const goToNextPage = () => {
     if (currentPage < totalPages) {
-      const newPage = page + 1;
+      const newPage = currentPage + 1;
       router.push(`?page=${newPage}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -39,15 +52,23 @@ export function HomeContent() {
 
   const goToPreviousPage = () => {
     if (currentPage > 1) {
-      const newPage = page - 1;
+      const newPage = currentPage - 1;
       router.push(`?page=${newPage}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  const handlePageChange = (newPage: number) => {
-    router.push(`?page=${newPage}`);
-  };
+  const handlePageInputChange = useCallback(
+    (value: string) => {
+      setPageInputValue(value);
+      if (pageInputDebounce.current) clearTimeout(pageInputDebounce.current);
+      pageInputDebounce.current = setTimeout(() => {
+        const newPage = Math.max(1, Math.min(totalPages, parseInt(value) || 1));
+        router.push(`?page=${newPage}`);
+      }, 500);
+    },
+    [totalPages, router],
+  );
 
   return (
     <>
@@ -107,14 +128,8 @@ export function HomeContent() {
                   type="number"
                   min="1"
                   max={totalPages}
-                  value={currentPage}
-                  onChange={(e) => {
-                    const newPage = Math.max(
-                      1,
-                      Math.min(totalPages, parseInt(e.target.value) || 1),
-                    );
-                    handlePageChange(newPage);
-                  }}
+                  value={pageInputValue}
+                  onChange={(e) => handlePageInputChange(e.target.value)}
                   className="w-12 px-2 py-1 bg-muted text-foreground border border-border rounded text-center text-sm"
                 />
                 <span className="text-sm text-muted-foreground">

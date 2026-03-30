@@ -38,7 +38,7 @@ export const addComment = mutation({
 });
 
 export const getCommentsForMeme = query({
-  args: { memeId: v.id("memes") },
+  args: { memeId: v.id("memes"), fingerprint: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const comments = await ctx.db
       .query("comments")
@@ -54,7 +54,7 @@ export const getCommentsForMeme = query({
         text: c.text,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
-        fingerprint: c.fingerprint,
+        isOwn: args.fingerprint ? c.fingerprint === args.fingerprint : false,
       }));
   },
 });

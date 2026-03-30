@@ -14,39 +14,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Eye, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { timeAgo } from "@/lib/utils";
 import Link from "next/link";
 
 interface MemeDetailDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   memeId: Id<"memes"> | null;
-}
-
-function timeAgo(ts: number): string {
-  const seconds = Math.floor((Date.now() - ts) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  sessionToken: string;
 }
 
 export function MemeDetailDrawer({
   open,
   onOpenChange,
   memeId,
+  sessionToken,
 }: MemeDetailDrawerProps) {
   const detail = useQuery(
     api.admin.getMemeAdminDetail,
-    memeId ? { memeId } : "skip",
+    memeId && sessionToken ? { memeId, sessionToken } : "skip",
   );
   const adminDeleteComment = useMutation(api.admin.adminDeleteComment);
 
   const handleDeleteComment = async (commentId: Id<"comments">) => {
     try {
-      await adminDeleteComment({ commentId });
+      await adminDeleteComment({ commentId, sessionToken });
       toast.success("Comment deleted");
     } catch {
       toast.error("Failed to delete comment");

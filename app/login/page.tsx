@@ -86,6 +86,7 @@ export default function LoginPage() {
                     placeholder="Your name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    autoComplete="name"
                     required
                   />
                 </div>
@@ -99,6 +100,7 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -111,6 +113,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                   required
                   minLength={8}
                 />
@@ -122,7 +125,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {isDev && (
+            {isDev ? (
               <div className="mt-4 text-center text-sm text-muted-foreground">
                 {isSignUp ? (
                   <>
@@ -148,6 +151,10 @@ export default function LoginPage() {
                   </>
                 )}
               </div>
+            ) : (
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                Public sign-up is disabled. Admin access only.
+              </p>
             )}
           </CardContent>
         </Card>

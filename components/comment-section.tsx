@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -10,36 +10,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Send, Trash2, Pencil, X, Check, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { timeAgo } from "@/lib/utils";
 
 interface CommentSectionProps {
   memeId: Id<"memes">;
 }
 
-function timeAgo(ts: number): string {
-  const seconds = Math.floor((Date.now() - ts) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 export function CommentSection({ memeId }: CommentSectionProps) {
-  const comments = useQuery(api.comments.getCommentsForMeme, { memeId });
+  const [fingerprint, setFingerprint] = useState("");
+
+  useEffect(() => {
+    setFingerprint(getFingerprint());
+  }, []);
+
+  const comments = useQuery(
+    api.comments.getCommentsForMeme,
+    fingerprint ? { memeId, fingerprint } : { memeId },
+  );
   const addComment = useMutation(api.comments.addComment);
   const deleteComment = useMutation(api.comments.deleteComment);
   const editComment = useMutation(api.comments.editComment);
 
   const [text, setText] = useState("");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sc_comment_name") || "";
+    }
+    return "";
+  });
   const [editingId, setEditingId] = useState<Id<"comments"> | null>(null);
   const [editText, setEditText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const fingerprint = typeof window !== "undefined" ? getFingerprint() : "";
 
   const handleSubmit = useCallback(async () => {
     const trimmed = text.trim();
@@ -54,6 +56,9 @@ export function CommentSection({ memeId }: CommentSectionProps) {
         text: trimmed,
       });
       setText("");
+      if (name.trim()) {
+        localStorage.setItem("sc_comment_name", name.trim());
+      }
       toast("Comment posted");
     } catch {
       toast.error("Failed to post comment");
@@ -62,6 +67,10 @@ export function CommentSection({ memeId }: CommentSectionProps) {
     }
   }, [text, name, memeId, fingerprint, addComment, isSubmitting]);
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState<Id<"comments"> | null>(
+    null,
+  );
+
   const handleDelete = useCallback(
     async (commentId: Id<"comments">) => {
       try {
@@ -69,6 +78,8 @@ export function CommentSection({ memeId }: CommentSectionProps) {
         toast("Comment deleted");
       } catch {
         toast.error("Failed to delete comment");
+      } finally {
+        setDeleteConfirmId(null);
       }
     },
     [deleteComment, fingerprint],
@@ -147,7 +158,7 @@ export function CommentSection({ memeId }: CommentSectionProps) {
       )}
       <div className="space-y-3">
         {comments?.map((comment) => {
-          const isOwn = comment.fingerprint === fingerprint;
+          const isOwn = comment.isOwn;
           const isEditing = editingId === comment._id;
 
           return (
@@ -175,13 +186,32 @@ export function CommentSection({ memeId }: CommentSectionProps) {
                     >
                       <Pencil className="size-3.5" />
                     </button>
-                    <button
-                      onClick={() => handleDelete(comment._id)}
-                      className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                      aria-label="Delete comment"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
+                    {deleteConfirmId === comment._id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleDelete(comment._id)}
+                          className="p-1 text-destructive hover:text-destructive/80 transition-colors text-xs font-medium"
+                          aria-label="Confirm delete"
+                        >
+                          <Check className="size-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label="Cancel delete"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirmId(comment._id)}
+                        className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Delete comment"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

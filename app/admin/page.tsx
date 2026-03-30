@@ -14,25 +14,20 @@ import { EditMemeDialog } from "@/components/admin/edit-meme-dialog";
 import { DeleteMemeDialog } from "@/components/admin/delete-meme-dialog";
 import { MemeDetailDrawer } from "@/components/admin/meme-detail-drawer";
 import { Id } from "@/convex/_generated/dataModel";
-
-interface MemeWithStats {
-  _id: Id<"memes">;
-  imageUrl: string;
-  imageUrls?: string[];
-  description: string;
-  shortId: string;
-  isNsfw?: boolean;
-  uploadedAt: number;
-  viewCount: number;
-  reactionCount: number;
-  commentCount: number;
-}
+import type { MemeWithStats } from "@/components/admin/meme-table";
 
 export default function AdminPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
-  const overview = useQuery(api.admin.getAdminOverview);
-  const allMemes = useQuery(api.admin.getAllMemesWithStats);
+  const sessionToken = session?.token ?? "";
+  const overview = useQuery(
+    api.admin.getAdminOverview,
+    sessionToken ? { sessionToken } : "skip",
+  );
+  const allMemes = useQuery(
+    api.admin.getAllMemesWithStats,
+    sessionToken ? { sessionToken } : "skip",
+  );
 
   const [editMeme, setEditMeme] = useState<MemeWithStats | null>(null);
   const [deleteMeme, setDeleteMeme] = useState<MemeWithStats | null>(null);
@@ -111,7 +106,7 @@ export default function AdminPage() {
           </h2>
           {allMemes ? (
             <MemeTable
-              memes={allMemes as unknown as MemeWithStats[]}
+              memes={allMemes}
               onEdit={setEditMeme}
               onDelete={setDeleteMeme}
               onRowClick={(meme) => setDetailMemeId(meme._id)}
@@ -127,16 +122,19 @@ export default function AdminPage() {
           open={!!editMeme}
           onOpenChange={(open) => !open && setEditMeme(null)}
           meme={editMeme}
+          sessionToken={sessionToken}
         />
         <DeleteMemeDialog
           open={!!deleteMeme}
           onOpenChange={(open) => !open && setDeleteMeme(null)}
           meme={deleteMeme}
+          sessionToken={sessionToken}
         />
         <MemeDetailDrawer
           open={!!detailMemeId}
           onOpenChange={(open) => !open && setDetailMemeId(null)}
           memeId={detailMemeId}
+          sessionToken={sessionToken}
         />
       </div>
     </main>

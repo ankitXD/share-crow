@@ -1,6 +1,6 @@
 import { Metadata } from "next";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { convexClient } from "@/lib/convex-server";
 import { MemeClient } from "./meme-client";
 
 /**
@@ -33,14 +33,7 @@ export async function generateMetadata({
       : "http://localhost:3000");
 
   try {
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) {
-      throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
-    }
-
-    // Use ConvexHttpClient to query directly
-    const convex = new ConvexHttpClient(convexUrl);
-    const meme = await convex.query(api.memes.getMemeByShortId, {
+    const meme = await convexClient.query(api.memes.getMemeByShortId, {
       shortId: shortId,
     });
 

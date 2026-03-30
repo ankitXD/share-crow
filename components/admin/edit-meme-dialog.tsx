@@ -28,12 +28,14 @@ interface EditMemeDialogProps {
     isNsfw?: boolean;
     imageUrl: string;
   } | null;
+  sessionToken: string;
 }
 
 export function EditMemeDialog({
   open,
   onOpenChange,
   meme,
+  sessionToken,
 }: EditMemeDialogProps) {
   const [description, setDescription] = useState("");
   const [isNsfw, setIsNsfw] = useState(false);
@@ -55,6 +57,7 @@ export function EditMemeDialog({
         memeId: meme._id,
         description: description.trim(),
         isNsfw,
+        sessionToken,
       });
       toast.success("Meme updated");
       onOpenChange(false);
