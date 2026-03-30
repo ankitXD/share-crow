@@ -32,6 +32,8 @@ export const recordView = mutation({
       });
     }
 
+    // Note: This read-modify-write on viewCount is safe because Convex
+    // serializes mutations per-document, preventing lost updates.
     const meme = await ctx.db.get(args.memeId);
     if (meme) {
       await ctx.db.patch(args.memeId, {

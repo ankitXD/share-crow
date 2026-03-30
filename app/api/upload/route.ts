@@ -82,11 +82,8 @@ export async function POST(request: NextRequest) {
       return result.secure_url;
     };
 
-    const urls: string[] = [];
-    for (const file of filesToUpload) {
-      const url = await uploadFile(file);
-      urls.push(url);
-    }
+    // Upload files to Cloudinary in parallel
+    const urls = await Promise.all(filesToUpload.map(uploadFile));
 
     // Return both formats for backward compat
     return NextResponse.json({

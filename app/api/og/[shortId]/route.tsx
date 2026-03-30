@@ -4,7 +4,10 @@ import { api } from "@/convex/_generated/api";
 
 export const runtime = "edge";
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL!;
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+if (!convexUrl) {
+  throw new Error("Missing NEXT_PUBLIC_CONVEX_URL environment variable");
+}
 const convex = new ConvexHttpClient(convexUrl);
 
 interface RouteParams {

@@ -1,11 +1,16 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Strip HTML tags iteratively to handle nested/malformed tags like <<script>alert(1)>.
+// Comments must always be rendered via React's default escaping (no dangerouslySetInnerHTML).
 function sanitizeText(text: string): string {
-  return text
-    .trim()
-    .replace(/<[^>]*>/g, "")
-    .slice(0, 500);
+  let cleaned = text.trim();
+  let prev;
+  do {
+    prev = cleaned;
+    cleaned = cleaned.replace(/<[^>]*>/g, "");
+  } while (cleaned !== prev);
+  return cleaned.slice(0, 500);
 }
 
 export const addComment = mutation({

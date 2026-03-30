@@ -17,6 +17,8 @@ async function requireAdmin(ctx: { db: QueryCtx["db"] }, sessionToken: string) {
   return user;
 }
 
+// Note: This loads entire tables for counting. At scale (10K+ memes),
+// consider maintaining a separate stats singleton document updated via mutations.
 export const getAdminOverview = query({
   args: { sessionToken: v.string() },
   handler: async (ctx, args) => {
@@ -45,28 +47,29 @@ export const getAllMemesWithStats = query({
       .order("desc")
       .collect();
 
-    const memesWithStats = await Promise.all(
-      allMemes.map(async (meme) => {
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_memeId", (q) => q.eq("memeId", meme._id))
-          .collect();
+    // Batch-fetch all reactions and comments to avoid N+1 queries
+    const allReactions = await ctx.db.query("reactions").collect();
+    const allComments = await ctx.db.query("comments").collect();
 
-        const comments = await ctx.db
-          .query("comments")
-          .withIndex("by_memeId", (q) => q.eq("memeId", meme._id))
-          .collect();
+    // Group by memeId in memory
+    const reactionsByMeme = new Map<string, number>();
+    for (const r of allReactions) {
+      reactionsByMeme.set(r.memeId, (reactionsByMeme.get(r.memeId) ?? 0) + 1);
+    }
 
-        return {
-          ...meme,
-          reactionCount: reactions.length,
-          commentCount: comments.filter((c) => !c.isDeleted).length,
-          viewCount: meme.viewCount ?? 0,
-        };
-      }),
-    );
+    const commentsByMeme = new Map<string, number>();
+    for (const c of allComments) {
+      if (!c.isDeleted) {
+        commentsByMeme.set(c.memeId, (commentsByMeme.get(c.memeId) ?? 0) + 1);
+      }
+    }
 
-    return memesWithStats;
+    return allMemes.map((meme) => ({
+      ...meme,
+      reactionCount: reactionsByMeme.get(meme._id) ?? 0,
+      commentCount: commentsByMeme.get(meme._id) ?? 0,
+      viewCount: meme.viewCount ?? 0,
+    }));
   },
 });
 
@@ -144,6 +147,9 @@ export const deleteMeme = mutation({
     const meme = await ctx.db.get(args.memeId);
     if (!meme) throw new Error("Meme not found");
 
+    // Cascade delete related records.
+    // Convex mutations are atomic per-function — if this times out with many
+    // related records, consider using a scheduled function to clean up in batches.
     // Delete all reactions for this meme
     const reactions = await ctx.db
       .query("reactions")

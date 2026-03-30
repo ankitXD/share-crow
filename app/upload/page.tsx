@@ -293,6 +293,7 @@ export default function UploadPage() {
         imageUrls: urls.length > 1 ? urls : undefined,
         description: description.trim(),
         isNsfw,
+        sessionToken: session.token,
       });
 
       toast.success("Meme uploaded successfully!");

@@ -79,6 +79,11 @@ export const getReactionsSummary = query({
     fingerprint: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Cap the number of meme IDs to prevent abuse
+    if (args.memeIds.length > 50) {
+      throw new Error("Too many meme IDs: maximum 50 allowed");
+    }
+
     const result: Array<{
       memeId: string;
       counts: Array<{ emoji: string; count: number }>;

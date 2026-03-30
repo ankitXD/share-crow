@@ -7,15 +7,15 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Validate configuration
-if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
-  console.warn("⚠️ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is not set");
-}
-if (!process.env.CLOUDINARY_API_KEY) {
-  console.warn("⚠️ CLOUDINARY_API_KEY is not set");
-}
-if (!process.env.CLOUDINARY_API_SECRET) {
-  console.warn("⚠️ CLOUDINARY_API_SECRET is not set");
+// Fail-fast if Cloudinary credentials are missing
+if (
+  !process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+  !process.env.CLOUDINARY_API_KEY ||
+  !process.env.CLOUDINARY_API_SECRET
+) {
+  throw new Error(
+    "Missing Cloudinary configuration: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET must all be set",
+  );
 }
 
 export default cloudinary;

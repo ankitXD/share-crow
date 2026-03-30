@@ -26,7 +26,9 @@ export default defineSchema({
     token: v.string(),
     expiresAt: v.number(),
     createdAt: v.number(),
-  }).index("by_token", ["token"]),
+  })
+    .index("by_token", ["token"])
+    .index("by_expiresAt", ["expiresAt"]),
 
   reactions: defineTable({
     memeId: v.id("memes"),

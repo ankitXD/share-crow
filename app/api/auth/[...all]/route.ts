@@ -6,10 +6,22 @@ import { api } from "convex/_generated/api";
 const SESSION_COOKIE = "session_token";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 
-// Simple in-memory rate limiter (per IP, per action)
+// In-memory rate limiter with size cap and periodic cleanup.
+// Note: In serverless (Vercel), this is per-isolate and not shared across instances.
+// For stronger protection, use a persistent store (Redis/Upstash).
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_ATTEMPTS = 10; // 10 attempts per minute
+const MAX_RATE_LIMIT_ENTRIES = 10000;
+
+function cleanupRateLimitMap() {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) {
+      rateLimitMap.delete(key);
+    }
+  }
+}
 
 function checkRateLimit(ip: string, action: string): boolean {
   const key = `${ip}:${action}`;
@@ -17,6 +29,10 @@ function checkRateLimit(ip: string, action: string): boolean {
   const entry = rateLimitMap.get(key);
 
   if (!entry || now > entry.resetAt) {
+    // Evict stale entries if map is too large
+    if (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES) {
+      cleanupRateLimitMap();
+    }
     rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     return true;
   }
@@ -103,7 +119,16 @@ export async function GET(request: NextRequest) {
 
 async function handleSignUp(request: NextRequest) {
   try {
-    const { email, password, name } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
+    const { email, password, name } = body;
 
     if (!email || !password || !name) {
       return NextResponse.json(
@@ -127,6 +152,7 @@ async function handleSignUp(request: NextRequest) {
         email,
         name,
         passwordHash,
+        serverSecret: process.env.SERVER_SECRET!,
       });
     } catch (error) {
       const message =
@@ -147,6 +173,7 @@ async function handleSignUp(request: NextRequest) {
       userId,
       token,
       expiresAt,
+      serverSecret: process.env.SERVER_SECRET!,
     });
 
     const response = NextResponse.json({ success: true });
@@ -161,7 +188,16 @@ async function handleSignUp(request: NextRequest) {
 
 async function handleSignIn(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
+    const { email, password } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -199,6 +235,7 @@ async function handleSignIn(request: NextRequest) {
       userId: user._id,
       token,
       expiresAt,
+      serverSecret: process.env.SERVER_SECRET!,
     });
 
     const response = NextResponse.json({ success: true });
@@ -211,10 +248,28 @@ async function handleSignIn(request: NextRequest) {
 }
 
 async function handleSignOut(request: NextRequest) {
+  // CSRF protection: validate Origin header
+  const origin = request.headers.get("origin");
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+  if (origin && siteUrl) {
+    const allowedOrigin = new URL(siteUrl).origin;
+    if (origin !== allowedOrigin) {
+      return NextResponse.json(
+        { error: "CSRF validation failed" },
+        { status: 403 },
+      );
+    }
+  }
+
   const token = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (token) {
-    await convexClient.mutation(api.users.deleteSession, { token });
+    await convexClient.mutation(api.users.deleteSession, {
+      token,
+      serverSecret: process.env.SERVER_SECRET!,
+    });
   }
 
   const response = NextResponse.json({ success: true });
@@ -239,5 +294,10 @@ async function handleGetSession(request: NextRequest) {
     return response;
   }
 
-  return NextResponse.json({ session: { ...result, token } });
+  // Return user data and token for Convex function auth.
+  // The token is needed client-side for Convex query/mutation auth (e.g., admin panel).
+  // XSS risk is mitigated by CSP headers in middleware.
+  return NextResponse.json({
+    session: { user: result.user, token },
+  });
 }

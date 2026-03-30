@@ -1,14 +1,34 @@
 import { mutation, query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { customAlphabet } from "nanoid";
 
 const PAGE_SIZE = 6;
+const MAX_DESCRIPTION_LENGTH = 500;
+const CLOUDINARY_URL_PREFIX = "https://res.cloudinary.com/";
 
 // Generate a 7-character ID using Base62 character set (0-9, a-z, A-Z)
 const nanoid = customAlphabet(
   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
   7,
 );
+
+function validateCloudinaryUrl(url: string) {
+  if (!url.startsWith(CLOUDINARY_URL_PREFIX)) {
+    throw new Error("Invalid image URL: must be a Cloudinary URL");
+  }
+}
+
+async function requireAuth(ctx: { db: QueryCtx["db"] }, sessionToken: string) {
+  const session = await ctx.db
+    .query("sessions")
+    .withIndex("by_token", (q) => q.eq("token", sessionToken))
+    .first();
+  if (!session || session.expiresAt < Date.now()) {
+    throw new Error("Unauthorized: invalid or expired session");
+  }
+  return session;
+}
 
 // Query to get all memes, sorted by upload date (newest first)
 export const getMemes = query({
@@ -108,40 +128,65 @@ export const getMemeByShortId = query({
   },
 });
 
-// Query to get adjacent memes (prev/next) for navigation
+// Query to get adjacent memes (prev/next) for navigation using index range queries.
+// "prev" = next newer meme (higher uploadedAt), "next" = next older meme (lower uploadedAt).
 export const getAdjacentMemes = query({
   args: { shortId: v.string() },
   handler: async (ctx, args) => {
-    const allMemes = await ctx.db
+    const currentMeme = await ctx.db
       .query("memes")
-      .withIndex("by_uploadedAt")
+      .withIndex("by_shortId", (q) => q.eq("shortId", args.shortId))
+      .first();
+
+    if (!currentMeme) return { prevShortId: null, nextShortId: null };
+
+    // Previous in desc list = newer meme (higher uploadedAt)
+    const prevMeme = await ctx.db
+      .query("memes")
+      .withIndex("by_uploadedAt", (q) =>
+        q.gt("uploadedAt", currentMeme.uploadedAt),
+      )
+      .order("asc")
+      .first();
+
+    // Next in desc list = older meme (lower uploadedAt)
+    const nextMeme = await ctx.db
+      .query("memes")
+      .withIndex("by_uploadedAt", (q) =>
+        q.lt("uploadedAt", currentMeme.uploadedAt),
+      )
       .order("desc")
-      .collect();
+      .first();
 
-    const currentIndex = allMemes.findIndex((m) => m.shortId === args.shortId);
-
-    if (currentIndex === -1) return { prevShortId: null, nextShortId: null };
-
-    const prevShortId =
-      currentIndex > 0 ? allMemes[currentIndex - 1].shortId : null;
-    const nextShortId =
-      currentIndex < allMemes.length - 1
-        ? allMemes[currentIndex + 1].shortId
-        : null;
-
-    return { prevShortId, nextShortId };
+    return {
+      prevShortId: prevMeme?.shortId ?? null,
+      nextShortId: nextMeme?.shortId ?? null,
+    };
   },
 });
 
-// Mutation to add a new meme
+// Mutation to add a new meme (requires auth)
 export const addMeme = mutation({
   args: {
     imageUrl: v.string(),
     imageUrls: v.optional(v.array(v.string())),
     description: v.string(),
     isNsfw: v.boolean(),
+    sessionToken: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.sessionToken);
+
+    // Validate URLs point to Cloudinary
+    validateCloudinaryUrl(args.imageUrl);
+    if (args.imageUrls) {
+      for (const url of args.imageUrls) {
+        validateCloudinaryUrl(url);
+      }
+    }
+
+    // Cap description length
+    const description = args.description.slice(0, MAX_DESCRIPTION_LENGTH);
     // Generate a unique shortId with collision check
     let shortId = nanoid();
     let attempts = 0;
@@ -172,7 +217,7 @@ export const addMeme = mutation({
     const memeId = await ctx.db.insert("memes", {
       imageUrl: args.imageUrl,
       imageUrls: args.imageUrls,
-      description: args.description,
+      description,
       isNsfw: args.isNsfw,
       uploadedAt: Date.now(),
       shortId: shortId,
