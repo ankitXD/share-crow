@@ -38,6 +38,8 @@ app/
     page.tsx              # Sign in / sign up page
   upload/
     page.tsx              # Meme upload form (auth required)
+  admin/
+    page.tsx              # Admin dashboard (auth-gated, meme management)
   meme/
     [shortId]/
       page.tsx            # Meme detail (server: metadata + OG)
@@ -58,6 +60,12 @@ components/
   convex-provider.tsx     # Convex client provider
   theme-provider.tsx      # next-themes dark mode provider
   pwa-register.tsx        # Service worker registration
+  admin/
+    stat-cards.tsx        # Overview stat cards (total memes, views, reactions, comments)
+    meme-table.tsx        # Sortable/searchable meme management table
+    edit-meme-dialog.tsx  # Dialog to edit meme description & NSFW flag
+    delete-meme-dialog.tsx # Confirmation dialog for meme deletion with cascade
+    meme-detail-drawer.tsx # Side sheet with full meme stats, reactions, comments
   ui/                     # shadcn/ui components
 config/
   cloudinary.ts           # Cloudinary v2 SDK configuration
@@ -68,6 +76,7 @@ convex/
   views.ts                # View tracking mutation (24h dedup per fingerprint)
   comments.ts             # Comment CRUD mutations & queries (anonymous)
   users.ts                # User & session queries/mutations
+  admin.ts                # Admin queries & mutations (overview stats, meme CRUD, comment moderation)
 hooks/
   use-mobile.ts           # Mobile breakpoint detection (768px)
 lib/
@@ -129,6 +138,7 @@ public/
 - Client-side: `useSession()` hook, `signIn.email()`, `signUp.email()`, `signOut()`
 - Server-side: `getServerSession(cookies)` helper
 - Sign-up disabled on production (Vercel)
+- Authenticated users are implicitly admins (no roles table needed)
 
 ### State Management
 
@@ -205,6 +215,18 @@ public/
 - Image preview before upload
 - Description textarea + NSFW toggle
 - Uploads to Cloudinary, saves metadata to Convex with generated shortId
+- Admin button in header links to `/admin` (Shield icon)
+
+### Admin Panel (`/admin`)
+
+- Auth-gated dashboard (authenticated = admin, since sign-up is disabled on production)
+- **Overview stat cards**: total memes, views, reactions, comments (real-time via Convex)
+- **Meme management table**: searchable by description/shortId, sortable by views/reactions/comments/date
+- **Edit meme**: dialog to update description and NSFW flag (`updateMeme` mutation)
+- **Delete meme**: confirmation dialog with cascade delete of reactions, views, and comments (`deleteMeme` mutation)
+- **Meme detail drawer**: side sheet showing full image, reaction breakdown per emoji, all comments with admin delete
+- **Comment moderation**: admin can hard-delete any comment (`adminDeleteComment` mutation)
+- Convex functions in `convex/admin.ts`: `getAdminOverview`, `getAllMemesWithStats`, `getMemeAdminDetail`, `updateMeme`, `deleteMeme`, `adminDeleteComment`
 
 ### Pagination
 
