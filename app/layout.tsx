@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: `${baseUrl}/api/og.png`,
+        url: `${baseUrl}/api/og`,
         width: 1200,
         height: 630,
         alt: "Share Crow - Discover & Share the Best Memes Online",
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     title: "Share Crow - Discover & Share the Best Memes Online",
     description:
       "Browse, upload, and share hilarious memes with the community. React with emojis, discover trending content, and build your meme collection.",
-    images: [`${baseUrl}/api/og.png`],
+    images: [`${baseUrl}/api/og`],
   },
 };
 
