@@ -50,11 +50,20 @@ export const metadata: Metadata = {
     description: "Share and discover the best memes",
     url: baseUrl,
     type: "website",
+    images: [
+      {
+        url: `${baseUrl}/api/og`,
+        width: 1200,
+        height: 630,
+        alt: "Share Crow - Share and discover the best memes",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Share Crow",
     description: "Share and discover the best memes",
+    images: [`${baseUrl}/api/og`],
   },
 };
 
