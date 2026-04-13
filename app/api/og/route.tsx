@@ -1,6 +1,7 @@
 import { ImageResponse } from "@vercel/og";
 
 export const runtime = "edge";
+export const revalidate = 3600; // Cache for 1 hour
 
 async function getCreepsterFont() {
   try {
@@ -17,7 +18,7 @@ async function getCreepsterFont() {
 export async function GET() {
   const creepsterFont = await getCreepsterFont();
 
-  return new ImageResponse(
+  const imageResponse = new ImageResponse(
     <div
       style={{
         display: "flex",
@@ -150,4 +151,13 @@ export async function GET() {
         : [],
     },
   );
+
+  // Add cache headers
+  imageResponse.headers.set(
+    "Cache-Control",
+    "public, s-maxage=3600, stale-while-revalidate=86400",
+  );
+  imageResponse.headers.set("Content-Type", "image/png");
+
+  return imageResponse;
 }
