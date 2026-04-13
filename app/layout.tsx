@@ -37,8 +37,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
-  title: "Share Crow",
-  description: "Share and discover the best memes",
+  title: "Share Crow - Discover & Share the Best Memes Online",
+  description:
+    "Browse, upload, and share hilarious memes with the community. React with emojis, discover trending content, and build your meme collection.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -46,24 +47,27 @@ export const metadata: Metadata = {
     title: "Share Crow",
   },
   openGraph: {
-    title: "Share Crow",
-    description: "Share and discover the best memes",
+    title: "Share Crow - Discover & Share the Best Memes Online",
+    description:
+      "Browse, upload, and share hilarious memes with the community. React with emojis, discover trending content, and build your meme collection.",
     url: baseUrl,
     type: "website",
     images: [
       {
-        url: `${baseUrl}/api/og`,
+        url: `${baseUrl}/api/og.png`,
         width: 1200,
         height: 630,
-        alt: "Share Crow - Share and discover the best memes",
+        alt: "Share Crow - Discover & Share the Best Memes Online",
+        type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Share Crow",
-    description: "Share and discover the best memes",
-    images: [`${baseUrl}/api/og`],
+    title: "Share Crow - Discover & Share the Best Memes Online",
+    description:
+      "Browse, upload, and share hilarious memes with the community. React with emojis, discover trending content, and build your meme collection.",
+    images: [`${baseUrl}/api/og.png`],
   },
 };
 
